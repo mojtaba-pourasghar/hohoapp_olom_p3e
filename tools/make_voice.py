@@ -32,6 +32,8 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RAW = os.path.join(ROOT, "app", "src", "main", "res", "raw")
+# what each recording said when it was made, so a line whose text changed is recorded again
+SPOKEN = os.path.join(ROOT, "project", "voice_spoken.json")
 MANIFEST = os.path.join(RAW, "audio_manifest.txt")
 
 
@@ -91,6 +93,20 @@ async def main_async(args):
     if not lines:
         sys.exit("No lines matched. Check the prefix, e.g. ch1_s0")
 
+    import hashlib
+    import json
+    spoken = {}
+    if os.path.exists(SPOKEN):
+        with open(SPOKEN, encoding="utf-8") as fh:
+            spoken = json.load(fh)
+
+    def said(text):
+        return hashlib.sha1(("%s|%s|%s" % (args.voice, args.rate, text)).encode("utf-8")).hexdigest()[:12]
+
+    def save_spoken():
+        with open(SPOKEN, "w", encoding="utf-8") as fh:
+            json.dump(spoken, fh, ensure_ascii=False, indent=0, sort_keys=True)
+
     ext = ".ogg" if to_ogg else ".mp3"
     print("Generating %d line(s) with %s as %s (examples at %s)\n"
           % (len(lines), args.voice, ext, args.example_rate))
@@ -106,13 +122,18 @@ async def main_async(args):
                 os.remove(path)
                 continue
             already.append(e)
-        if already and not args.force:
+        # a recording made before this log existed is trusted; one whose text changed is not
+        changed = key in spoken and spoken[key] != said(text)
+        if already and not args.force and not changed:
             print("  %2d/%d  %-14s skipped (already there)" % (index, len(lines), key))
             continue
         try:
             # an example is the second try at an idea, so هوهو takes her time over it
             rate = args.example_rate if key.endswith("x") else args.rate
             path = await synthesize(edge_tts, key, text, args.voice, rate, args.pitch, to_ogg)
+            spoken[key] = said(text)
+            if index % 50 == 0:
+                save_spoken()
             print("  %2d/%d  %-14s %6.1f KB  %s" % (
                 index, len(lines), key, os.path.getsize(path) / 1024, text[:42] + "…"))
         except Exception as exc:  # keep going; one bad line shouldn't stop the batch
@@ -123,6 +144,16 @@ async def main_async(args):
                     os.remove(stale)
             print("  %2d/%d  %-14s FAILED: %s" % (index, len(lines), key, exc))
 
+    # recordings of lines that left the manifest are dead weight in the APK
+    if not args.prefix:
+        keys = {key for key, _ in lines}
+        for name in os.listdir(RAW):
+            base, e = os.path.splitext(name)
+            if e in (".ogg", ".mp3") and base not in keys:
+                os.remove(os.path.join(RAW, name))
+                spoken.pop(base, None)
+                print("  removed %s (no longer in the manifest)" % name)
+    save_spoken()
     print("\nDone. Rebuild the app and the lessons will use these recordings.")
 
 
