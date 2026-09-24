@@ -16,7 +16,7 @@ Output: app/src/main/assets/art/<name>.webp, at most 640 px on the long side.
 
     pip install pymupdf pillow numpy scipy
     python3 tools/cut_art.py            # every picture
-    python3 tools/cut_art.py p008       # only names starting with p008
+    python3 tools/cut_art.py sun cup    # only names starting with sun or cup
 """
 import io
 import os
@@ -84,7 +84,7 @@ def round_corners(img, radius_frac=0.07):
 
 
 def main():
-    prefix = sys.argv[1] if len(sys.argv) > 1 else ""
+    prefixes = tuple(sys.argv[1:])
     doc = pymupdf.open(PDF)
     os.makedirs(OUT, exist_ok=True)
     made = 0
@@ -95,7 +95,7 @@ def main():
         parts = [p.strip() for p in raw.split("|")]
         name, page, box = parts[0], int(parts[1]), [int(v) for v in parts[2].split()]
         flags = parts[3] if len(parts) > 3 else ""
-        if prefix and not name.startswith(prefix):
+        if prefixes and not name.startswith(prefixes):
             continue
         img = page_image(doc, page)
         W, H = img.size
