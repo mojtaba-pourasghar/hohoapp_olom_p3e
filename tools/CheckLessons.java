@@ -22,7 +22,7 @@ public class CheckLessons {
 
     public static void main(String[] args) {
         Set<String> keys = new HashSet<>();
-        int steps = 0, pages = 0;
+        int steps = 0, pages = 0, scenes = 0;
         for (int ch = 0; ch < Book.CHAPTER_COUNT; ch++) {
             Book.Chapter c = Book.chapter(ch);
             for (int p = c.firstPage; p <= c.lastPage; p++) {
@@ -37,14 +37,22 @@ public class CheckLessons {
                     steps++;
                     if (!keys.add(st.audioKey)) fail("duplicate key " + st.audioKey);
                     if (st.hasExample() && !keys.add(st.exampleAudioKey)) fail("duplicate key " + st.exampleAudioKey);
-                    if (!st.audioKey.startsWith(String.format("p%03d_", p))) fail(st.audioKey + " is on page " + p);
-                    if (st.hasStage()) {
+                    if (!st.audioKey.substring(1).startsWith(String.format("%03d_", p))) fail(st.audioKey + " is on page " + p);
+                    if (st.hasStage() && st.stage.kind == StageSpec.Kind.BOOK) {
                         if (st.stage.page != p) fail(st.audioKey + " shows page " + st.stage.page);
                         rects(st.audioKey + " stops", st.stage.stops);
                     }
+                    if (st.hasStage() && st.stage.kind == StageSpec.Kind.SCENE) {
+                        scenes++;
+                        for (String art : st.stage.scene.artNames()) {
+                            if (!new java.io.File("app/src/main/assets/art/" + art + ".webp").exists()) fail(st.audioKey + ": no picture " + art);
+                        }
+                    }
                     if (st.kind == LessonKind.TAP) {
-                        rects(st.audioKey + " targets", st.tapTargets);
                         if (!st.hasStage()) fail(st.audioKey + " TAP without a page");
+                        if (st.tapActors != null) {
+                            for (int a : st.tapActors) if (a < 0 || a >= st.stage.scene.actors.size()) fail(st.audioKey + ": pick points past the pictures");
+                        } else rects(st.audioKey + " targets", st.tapTargets);
                     }
                     if (st.kind == LessonKind.MCQ && (st.correctIndex < 0 || st.correctIndex >= st.options.size())) fail(st.audioKey + " bad answer index");
                     if (st.kind != LessonKind.TEACH && st.kind != LessonKind.DONE && (st.why == null || st.why.isEmpty())) fail(st.audioKey + " has no feedback");
@@ -65,7 +73,7 @@ public class CheckLessons {
             System.out.printf("درس %2d: %2d pages, bank %2d, worksheet %2d, exam %2d%n", ch + 1,
                 PageLessons.pagesOfChapter(ch).size(), bank.size(), ws, ex);
         }
-        System.out.println("pages " + pages + ", steps " + steps + ", narration keys " + keys.size());
+        System.out.println("pages " + pages + ", scenes " + scenes + ", steps " + steps + ", narration keys " + keys.size());
         if (errors > 0) {
             System.out.println(errors + " problem(s)");
             System.exit(1);

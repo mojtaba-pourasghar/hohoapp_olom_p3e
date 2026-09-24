@@ -29,7 +29,7 @@ def spoken(text):
 SRC = "app/src/main/java/com/hoohooolom/app/data"
 OUT = "app/src/main/res/raw/audio_manifest.txt"
 
-KEY = re.compile(r'"(p\d{3}_\d+x?)"\s*,\s*\n?\s*"((?:[^"\\]|\\.)*)"', re.S)
+KEY = re.compile(r'"([pt]\d{3}_\d+x?)"\s*,\s*\n?\s*"((?:[^"\\]|\\.)*)"', re.S)
 # «// ۱. ...» in the section lessons, «// ── صفحه‌ی ۷ — ... ──» in the page lessons
 SECTION = re.compile(r'^\s*//\s*(?:(?:۰|[۱-۹][۰-۹]*|\d+)\.\s*(.+?)|──\s*(.+?)\s*──)\s*$', re.M)
 

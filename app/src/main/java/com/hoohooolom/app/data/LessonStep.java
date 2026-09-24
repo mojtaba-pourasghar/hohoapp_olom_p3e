@@ -20,8 +20,10 @@ public class LessonStep {
     public final String answerFa;      // NUM only, expected Persian-digit answer
     public final String why;           // feedback shown after answering
 
-    /** TAP only: the places on the page that count as right, 4 numbers (‰) per place. */
+    /** TAP on a book page: the places that count as right, 4 numbers (‰) per place. */
     public final int[] tapTargets;
+    /** TAP on a scene: the actors (0-based) that count as right. */
+    public final int[] tapActors;
 
     /** A second, fuller go at the same idea, offered behind the "یک مثال دیگر" button. */
     public final String exampleAudioKey;
@@ -30,6 +32,13 @@ public class LessonStep {
     private LessonStep(LessonKind kind, String audioKey, String say, String caption, StageSpec stage,
                        List<String> options, int correctIndex, String answerFa, String why,
                        String exampleAudioKey, String exampleSay, int[] tapTargets) {
+        this(kind, audioKey, say, caption, stage, options, correctIndex, answerFa, why, exampleAudioKey, exampleSay, tapTargets, null);
+    }
+
+    private LessonStep(LessonKind kind, String audioKey, String say, String caption, StageSpec stage,
+                       List<String> options, int correctIndex, String answerFa, String why,
+                       String exampleAudioKey, String exampleSay, int[] tapTargets, int[] tapActors) {
+        this.tapActors = tapActors;
         this.kind = kind;
         this.audioKey = audioKey;
         this.say = say;
@@ -55,7 +64,7 @@ public class LessonStep {
     /** Attaches the extra example a child can ask for on this step. */
     public LessonStep withExample(String exampleAudioKey, String exampleSay) {
         return new LessonStep(kind, audioKey, say, caption, stage, options, correctIndex, answerFa, why,
-            exampleAudioKey, exampleSay, tapTargets);
+            exampleAudioKey, exampleSay, tapTargets, tapActors);
     }
 
     public static LessonStep teach(String audioKey, String say, String caption, StageSpec stage) {
@@ -82,6 +91,23 @@ public class LessonStep {
             throw new IllegalArgumentException(audioKey + ": tap targets come in fours");
         }
         return new LessonStep(LessonKind.TAP, audioKey, say, caption, stage, null, -1, null, why, null, null, targets);
+    }
+
+    /**
+     * The child picks the right picture in the scene: a tap on any of `actors` (1 = the scene's
+     * first picture) is right.
+     */
+    public static LessonStep pick(String audioKey, String say, String caption, StageSpec stage,
+                                  int[] actors, String why) {
+        if (actors == null || actors.length == 0) throw new IllegalArgumentException(audioKey + ": no actors to pick");
+        int[] zero = new int[actors.length];
+        for (int i = 0; i < actors.length; i++) zero[i] = actors[i] - 1;
+        return new LessonStep(LessonKind.TAP, audioKey, say, caption, stage, null, -1, null, why, null, null, null, zero);
+    }
+
+    /** Shorthand for the pictures to pick: `on(2, 3)`. */
+    public static int[] on(int... actors) {
+        return actors;
     }
 
     /** Shorthand for the tap targets: `at(x1, y1, x2, y2, …)`. */

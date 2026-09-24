@@ -14,7 +14,9 @@ public class StageSpec {
     public enum Kind {
         NONE,
         /** A page of the book, with the camera touring its pictures one after another. */
-        BOOK
+        BOOK,
+        /** An animated scene of pictures cut out of the book (see {@link Scene}). */
+        SCENE
     }
 
     public enum Effect {
@@ -33,7 +35,15 @@ public class StageSpec {
     /** A patch covered with a «؟» note until the child has answered — where the book shows the answer. */
     public final int[] cover;
 
+    /** SCENE only. */
+    public final Scene scene;
+
     private StageSpec(Kind kind, int page, int[] stops, Effect effect, int[] cover) {
+        this(kind, page, stops, effect, cover, null);
+    }
+
+    private StageSpec(Kind kind, int page, int[] stops, Effect effect, int[] cover, Scene scene) {
+        this.scene = scene;
         this.kind = kind;
         this.page = page;
         this.stops = stops == null ? new int[0] : stops;
@@ -50,6 +60,11 @@ public class StageSpec {
     public static StageSpec book(int page, int... stops) {
         if (stops.length % 4 != 0) throw new IllegalArgumentException("page " + page + ": stops come in fours");
         return new StageSpec(Kind.BOOK, page, stops, Effect.ZOOM, null);
+    }
+
+    /** An animated scene of the book's own pictures; one line per actor or motion. */
+    public static StageSpec scene(String... lines) {
+        return new StageSpec(Kind.SCENE, 0, null, Effect.ZOOM, null, Scene.parse(lines));
     }
 
     /** The same tour, but with the torch-light look instead of zooming right in. */

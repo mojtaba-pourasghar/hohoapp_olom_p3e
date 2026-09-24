@@ -1,0 +1,46 @@
+# name | printed page | x1 y1 x2 y2 (‰ of the page) | flags (k = cut out the background, r = rounded photo)
+# ── درس ۱ — زنگ علوم ──
+field        | 7  | 0 225 1000 872 | r
+farmhouse    | 7  | 668 400 912 485 | r
+butterfly_photo | 8 | 97 148 394 296 | r
+notebook     | 8  | 97 307 394 538 | r
+butterfly    | 8  | 218 565 332 638 | k
+spider       | 8  | 368 565 464 638 | k
+fly          | 8  | 518 565 594 638 | k
+ant          | 8  | 640 578 714 636 | k
+hen_photo    | 9  | 146 108 532 318 | r
+quail        | 9  | 176 650 276 722 | k
+duck         | 9  | 310 642 424 722 | k
+goose        | 9  | 458 632 568 722 | k
+hen          | 9  | 608 632 708 726 | k
+egg_chart    | 10 | 240 180 690 458 | k
+lettuce      | 11 | 270 163 778 409 | r
+lettuce_hand | 12 | 128 147 414 414 | r
+milk_boy     | 12 | 146 536 420 736 | k
+# ── درس ۲ — خوراکی‌ها ──
+shop         | 13 | 0 188 1000 874 | r
+shop_girl    | 13 | 710 385 980 668 | r
+milk_box     | 13 | 645 472 728 598 | k
+health_plate | 14 | 128 400 656 796 | k
+fats_box     | 14 | 688 628 830 804 | r
+meat_group   | 16 | 433 112 694 221 | r
+grain_group  | 16 | 433 228 694 337 | r
+fruit_group  | 16 | 433 348 694 455 | r
+dairy_group  | 16 | 433 463 694 573 | r
+fat_group    | 16 | 433 581 694 691 | r
+eggs         | 16 | 436 167 561 221 | r
+water_girl   | 17 | 142 612 424 907 | k
+packages     | 18 | 100 335 862 716 | k
+cheese_tub   | 19 | 256 320 490 480 | k
+apple_label  | 19 | 500 205 768 396 | k
+snack_bag    | 20 | 160 470 768 884 | k
+date_zoom    | 20 | 164 793 340 882 | k
+bf_good      | 21 | 144 244 517 428 | r
+bf_choc      | 21 | 531 244 902 428 | r
+lunch_fried  | 21 | 144 463 517 646 | r
+lunch_rice   | 21 | 531 463 902 646 | r
+dinner_burger | 21 | 148 687 522 874 | r
+dinner_fish  | 21 | 531 687 902 874 | r
+samanu       | 22 | 98 290 387 492 | r
+haftsin      | 22 | 180 540 780 870 | k
+sabzeh       | 22 | 283 700 428 812 | r

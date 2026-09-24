@@ -75,6 +75,9 @@ public class LessonStageView extends View {
     private long tapNanos;
     /** Targets drawn in green once the child has answered a TAP step. */
     private int[] shownTargets;
+    /** SCENE: the actors ringed in green once the child has answered. */
+    private int[] shownActors;
+    private final SceneRenderer sceneRenderer;
 
     // the camera: centre of the view in page pixels, and page pixels → screen pixels
     private float camX, camY, camScale;
@@ -104,6 +107,7 @@ public class LessonStageView extends View {
         ring.setStrokeJoin(Paint.Join.ROUND);
         textPaint.setTextAlign(Paint.Align.CENTER);
         textPaint.setTypeface(UiKit.font(context, true));
+        sceneRenderer = new SceneRenderer(context);
     }
 
     // ---------- public API ----------
@@ -118,7 +122,9 @@ public class LessonStageView extends View {
      */
     public void setSpec(StageSpec spec, boolean settled) {
         this.spec = spec == null ? StageSpec.NONE : spec;
-        this.page = this.spec.isNone() ? null : load(getContext(), this.spec.page);
+        this.page = this.spec.kind == StageSpec.Kind.BOOK ? load(getContext(), this.spec.page) : null;
+        sceneRenderer.setScene(this.spec.kind == StageSpec.Kind.SCENE ? this.spec.scene : null);
+        this.shownActors = null;
         this.progress = settled ? 1f : 0f;
         this.playing = false;
         this.tapX = -1;
@@ -157,6 +163,17 @@ public class LessonStageView extends View {
         invalidate();
     }
 
+    /** SCENE: which actor sits under a tap (stage units), or -1. */
+    public int actorAt(float x, float y) {
+        return sceneRenderer.actorAt(x, y);
+    }
+
+    /** SCENE: rings the right pictures, once the child has had their go. */
+    public void showActors(int[] actors) {
+        shownActors = actors;
+        invalidate();
+    }
+
     /** Rings the right answers on the page, once the child has had their go. */
     public void showTargets(int[] targets) {
         shownTargets = targets;
@@ -170,6 +187,7 @@ public class LessonStageView extends View {
         this.startNanos = System.nanoTime();
         this.progress = 0f;
         this.playing = true;
+        sceneRenderer.restart();
         startLoop();
     }
 
@@ -313,6 +331,10 @@ public class LessonStageView extends View {
         float w = getWidth(), h = getHeight();
         canvas.drawColor(BACKDROP);
         if (w <= 0 || h <= 0 || spec.isNone()) return;
+        if (spec.kind == StageSpec.Kind.SCENE) {
+            drawScene(canvas, w, h);
+            return;
+        }
         if (page == null) {
             textPaint.setColor(Color.GRAY);
             textPaint.setTextSize(sp(14));
@@ -387,6 +409,27 @@ public class LessonStageView extends View {
         }
     }
 
+    private void drawScene(Canvas canvas, float w, float h) {
+        sceneRenderer.draw(canvas, w, h, progress, answersHidden);
+        sceneRenderer.drawAnswerRings(canvas, shownActors);
+        long now = System.nanoTime();
+        if (tapX >= 0) sceneRenderer.drawTouch(canvas, tapX, tapY, tapRight, (now - tapNanos) / 1e9f);
+        if (tapListener != null && tapX < 0) drawTapHint(canvas, w, h, (float) (0.5 + 0.5 * Math.sin(now / 1e9 * 4.2)));
+    }
+
+    private void drawTapHint(Canvas canvas, float w, float h, float pulse) {
+        textPaint.setColor(Color.WHITE);
+        textPaint.setTextSize(sp(13));
+        String hint = "روی تصویر بزن";
+        float tw = textPaint.measureText(hint) + dp(22);
+        tmp.set(w / 2 - tw / 2, h - dp(34), w / 2 + tw / 2, h - dp(8));
+        fill.setColor(PINK);
+        fill.setAlpha((int) (200 + 55 * pulse));
+        canvas.drawRoundRect(tmp, dp(13), dp(13), fill);
+        fill.setAlpha(255);
+        canvas.drawText(hint, w / 2, h - dp(16), textPaint);
+    }
+
     /** The glowing ring round the live picture, the travelling spark, and the torch for SPOT. */
     private void drawFocus(Canvas canvas, float w, float h, float hold, float pulse, long now) {
         stopRect(liveStop, tmp);
@@ -435,6 +478,15 @@ public class LessonStageView extends View {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
+        if (tapListener != null && spec.kind == StageSpec.Kind.SCENE) {
+            if (event.getAction() == MotionEvent.ACTION_DOWN) return true;
+            if (event.getAction() == MotionEvent.ACTION_UP) {
+                tapListener.onPageTap(sceneRenderer.toStageX(event.getX()), sceneRenderer.toStageY(event.getY()));
+                performClick();
+                return true;
+            }
+            return super.onTouchEvent(event);
+        }
         if (tapListener == null || page == null || spec.isNone()) return super.onTouchEvent(event);
         if (event.getAction() == MotionEvent.ACTION_DOWN) return true;
         if (event.getAction() == MotionEvent.ACTION_UP) {

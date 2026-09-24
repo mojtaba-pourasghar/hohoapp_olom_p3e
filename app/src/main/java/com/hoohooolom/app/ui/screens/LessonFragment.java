@@ -86,7 +86,7 @@ public class LessonFragment extends BaseFragment {
 
         Book.Chapter ch = Book.chapter(chapter);
         ((TextView) view.findViewById(R.id.lesson_title)).setText(page > 0
-            ? "کتاب، صفحه‌ی " + fa(page) + " — " + ch.sections.get(section)
+            ? "درس " + ch.numberFa + " · " + ch.title + " — " + ch.sections.get(section)
             : "خلاصه‌ی بخش " + fa(section + 1) + ": " + ch.sections.get(section));
         onTap(view, R.id.lesson_replay, this::togglePlayback);
         onTap(view, R.id.lesson_prev, () -> goToStep(stepIndex - 1));
@@ -114,7 +114,8 @@ public class LessonFragment extends BaseFragment {
         typed.setLength(0);
 
         setText(R.id.lesson_step_count,
-            "صفحه‌ی " + fa(script.bookPage) + " کتاب · گام " + fa(stepIndex + 1) + " از " + fa(script.steps.size()));
+            (page > 0 ? "قسمت " + fa(PageLessons.pagesOfChapter(chapter).indexOf(page) + 1) + " (صفحه‌ی " + fa(page) + " کتاب)"
+                : "مرورِ بخش") + " · گام " + fa(stepIndex + 1) + " از " + fa(script.steps.size()));
         setText(R.id.lesson_say, step.say);
         setText(R.id.lesson_caption, step.caption);
 
@@ -358,12 +359,28 @@ public class LessonFragment extends BaseFragment {
     /** The child touched the page on a TAP step: right if it lands on one of the targets. */
     private void onPageTap(LessonStep step, float x, float y) {
         if (answered) return;
-        boolean right = step.hits(x, y);
+        boolean right;
+        if (step.tapActors != null) {
+            // a scene: right when the touch lands on one of the pictures asked for
+            int hit = stage == null ? -1 : stage.actorAt(x, y);
+            right = false;
+            for (int a : step.tapActors) if (a == hit) right = true;
+            if (!right && hit < 0) {
+                // a touch on bare backdrop is not an answer yet — let the child aim again
+                mascot().say("روی خودِ تصویرها بزن.");
+                return;
+            }
+        } else {
+            right = step.hits(x, y);
+        }
         SoundManager sound = SoundManager.get();
         if (sound != null) sound.tap();
         if (stage != null) stage.markTap(x, y, right);
         answered = true;
-        if (right && stage != null) stage.showTargets(step.tapTargets);
+        if (right && stage != null) {
+            if (step.tapActors != null) stage.showActors(step.tapActors);
+            else stage.showTargets(step.tapTargets);
+        }
         onLessonAnswer(right, step.why);
     }
 
@@ -397,7 +414,7 @@ public class LessonFragment extends BaseFragment {
         card.addView(sub, UiKit.marginParams(requireContext(), 6, 12));
 
         int next = page > 0 ? nextPage() : 0;
-        TextView cta = bigButton(next > 0 ? "برویم صفحه‌ی " + fa(next) + " کتاب" : "تمرین‌های این بخش",
+        TextView cta = bigButton(next > 0 ? "برویم قسمتِ بعد" : "تمرین‌های این بخش",
             R.color.teal, R.color.white);
         cta.setOnClickListener(v -> {
             LessonAudio.stop();
@@ -468,7 +485,10 @@ public class LessonFragment extends BaseFragment {
             if (stage != null) {
                 LessonStep current = script.steps.get(stepIndex);
                 stage.setRevealAnswers(true);
-                if (current.kind == LessonKind.TAP) stage.showTargets(current.tapTargets);
+                if (current.kind == LessonKind.TAP) {
+                    if (current.tapActors != null) stage.showActors(current.tapActors);
+                    else stage.showTargets(current.tapTargets);
+                }
             }
         });
         UiKit.tapSound(button);

@@ -11,6 +11,6 @@ javac -nowarn -d "$OUT" \
   "$SRC"/LessonKind.java "$SRC"/LessonStep.java "$SRC"/LessonScript.java "$SRC"/StageSpec.java \
   "$SRC"/Book.java "$SRC"/Lessons.java "$SRC"/PageLessons.java "$SRC"/PersianDigits.java \
   "$SRC"/QuizBank.java "$SRC"/QuizBuilder.java "$SRC"/QuizMode.java "$SRC"/QuizSession.java \
-  "$SRC"/QuestionItem.java "$SRC"/Chapter*Pages.java "$SRC"/Chapter*Quiz.java \
+  "$SRC"/QuestionItem.java "$SRC"/Scene.java "$SRC"/Chapter*Pages.java "$SRC"/Chapter*Quiz.java \
   tools/CheckLessons.java
 java -cp "$OUT" CheckLessons
