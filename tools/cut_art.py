@@ -4,13 +4,15 @@ Cuts the book's own pictures out of the page, one picture per file, for the anim
 
 The list lives in project/art/art.txt, one picture per line:
 
-    name | page | x1 y1 x2 y2 | flags
+    name | page | x1 y1 x2 y2 | flags | erase
 
   page       printed page number (the PDF's first page is the cover, so printed N = index N)
   x1 … y2    the picture's rectangle in thousandths of the page (0…1000, from the top-left)
   flags      k  key out the background: flat light colour touching the edges becomes transparent
              r  round the corners (for photos)
              (nothing) keep the rectangle as it is
+  erase      optional page rectangles (same thousandths, several joined by ;) painted white first,
+             to wipe out a caption or a page border that runs into the picture
 
 Output: app/src/main/assets/art/<name>.webp, at most 640 px on the long side.
 
@@ -99,6 +101,12 @@ def main():
             continue
         img = page_image(doc, page)
         W, H = img.size
+        if len(parts) > 4 and parts[4]:
+            img = img.copy()
+            draw = ImageDraw.Draw(img)
+            for rect in parts[4].split(";"):
+                e = [int(v) for v in rect.split()]
+                draw.rectangle((e[0] * W // 1000, e[1] * H // 1000, e[2] * W // 1000, e[3] * H // 1000), fill="white")
         crop = img.crop((box[0] * W // 1000, box[1] * H // 1000, box[2] * W // 1000, box[3] * H // 1000))
         if "k" in flags:
             crop = key_out(crop)

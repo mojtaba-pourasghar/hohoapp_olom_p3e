@@ -198,3 +198,41 @@ girls_mirror | 73 | 293 600 758 811 | r
 toys_flat    | 74 | 336 276 644 467 | r
 toys_big     | 74 | 336 485 644 675 | r
 toys_small   | 74 | 336 691 644 882 | r
+# ── درس ۹ — نیرو، همه جا (۱) ──
+park_scene   | 75 | 0 250 1000 812 | r
+football_boy | 75 | 689 439 978 724 | r
+skaters      | 76 | 139 167 706 432 | k | 460 140 900 197
+plane_boy    | 76 | 122 423 367 772 | k
+gym_boy      | 76 | 550 423 833 740 | k
+badminton    | 77 | 111 110 294 431 | k
+kite         | 77 | 339 167 578 293 | k
+rope_girl    | 77 | 639 215 928 508 | k
+rope_group   | 77 | 156 492 639 695 | k
+pinwheel_boy | 77 | 0 748 300 897 | k
+kite_boy     | 77 | 728 776 948 898 | k
+swing_push   | 78 | 0 549 622 833 | k
+swing_pull   | 78 | 550 207 828 589 | k
+wheelbarrow  | 79 | 11 138 389 480 | k | 170 180 900 206
+yoyo         | 79 | 728 313 938 443 | k
+kick_boy     | 79 | 472 366 789 699 | k | 725 300 800 450
+drawer_girl  | 79 | 100 569 367 874 | k
+toy_truck    | 79 | 378 789 583 947 | k
+pull_boy     | 79 | 600 687 933 935 | k
+tug_war      | 80 | 78 215 883 407 | k
+rock_push    | 80 | 56 455 522 752 | k | 405 430 600 540
+sock_boy     | 81 | 150 159 376 343 | r
+lift_button  | 81 | 391 159 630 343 | r
+stroller     | 81 | 648 159 898 343 | r
+baker        | 82 | 55 114 506 512 | k
+goalkeeper   | 82 | 522 340 856 512 | r
+pingpong     | 82 | 50 593 556 805 | k
+balloon_boy  | 82 | 572 553 828 805 | k
+foil_boat    | 83 | 196 520 356 645 | k
+clay_hands   | 83 | 428 476 594 593 | k
+clay_boat    | 83 | 656 524 817 642 | k
+boat_pool    | 83 | 106 614 956 1000 | k
+shovel       | 84 | 100 118 406 423 | k | 355 100 830 132
+hammer       | 84 | 467 252 683 423 | r
+crowbar      | 84 | 100 500 441 736 | r
+kick_ball    | 84 | 467 500 683 736 | r
+basketball   | 84 | 700 500 878 736 | r
