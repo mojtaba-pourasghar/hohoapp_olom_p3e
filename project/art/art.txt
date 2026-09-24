@@ -236,3 +236,23 @@ hammer       | 84 | 467 252 683 423 | r
 crowbar      | 84 | 100 500 441 736 | r
 kick_ball    | 84 | 467 500 683 736 | r
 basketball   | 84 | 700 500 878 736 | r
+# ── درس ۱۰ — نیرو، همه جا (۲) ──
+park2        | 85 | 0 187 1000 812 | r
+seesaw_boys  | 85 | 356 463 922 764 | r
+magnets_repel | 86 | 206 218 744 351 | r
+magnets_attract | 86 | 222 368 728 502 | r
+ball_girls   | 86 | 122 520 444 900 | k
+slide_kid    | 87 | 183 163 511 348 | r
+rain_park    | 87 | 530 163 867 348 | r
+dump_truck   | 87 | 183 359 511 545 | r
+pitcher      | 87 | 530 359 867 545 | r
+ball_arrows  | 87 | 172 557 511 906 | k | 461 590 900 740
+spring_girls | 88 | 300 341 667 561 | k
+plant_boy    | 89 | 72 490 545 906 | r
+suitcase_girl | 89 | 617 386 945 900 | k | 600 380 706 448
+log_lever    | 90 | 0 0 1000 810 | r
+lever_far    | 91 | 298 254 750 402 | r
+lever_hand   | 91 | 298 478 750 626 | r
+lever_weight | 91 | 298 729 750 878 | r
+balance_scale | 92 | 311 299 700 561 | k
+seesaw_girls | 92 | 100 561 861 841 | k | 252 561 262 700;744 561 756 640
