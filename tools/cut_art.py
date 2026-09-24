@@ -51,10 +51,17 @@ def key_out(img, tol=34):
     border = np.concatenate([a[0], a[-1], a[:, 0], a[:, -1]])
     # the background is the commonest border colour, taken coarsely
     q = (border // 12).astype(np.int32)
-    keys, counts = np.unique(q[:, 0] * 10000 + q[:, 1] * 100 + q[:, 2], return_counts=True)
-    top = keys[np.argmax(counts)]
-    bg = np.array([top // 10000, (top // 100) % 100, top % 100]) * 12 + 6
-    near = np.abs(a - bg).max(axis=2) < tol
+    codes = q[:, 0] * 10000 + q[:, 1] * 100 + q[:, 2]
+    keys, counts = np.unique(codes, return_counts=True)
+    order = np.argsort(-counts)
+    # up to two background colours (a page can put a coloured band behind part of a picture)
+    near = np.zeros((h, w), dtype=bool)
+    for k in order[:2]:
+        if counts[k] < 0.12 * len(codes) and k != order[0]:
+            continue
+        top = keys[k]
+        bg = np.array([top // 10000, (top // 100) % 100, top % 100]) * 12 + 6
+        near |= np.abs(a - bg).max(axis=2) < tol
     labels, _ = ndimage.label(near)
     edge_labels = set(np.unique(np.concatenate([labels[0], labels[-1], labels[:, 0], labels[:, -1]]))) - {0}
     mask = np.isin(labels, list(edge_labels))

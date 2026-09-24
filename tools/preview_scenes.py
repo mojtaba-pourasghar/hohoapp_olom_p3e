@@ -62,7 +62,7 @@ def main():
     fonts = {}
     n = 0
     for key, lines in scenes():
-        if not key.startswith(prefix):
+        if prefix and not re.match(prefix, key):
             continue
         im = Image.new("RGB", (1000, 600), BG["plain"])
         d = ImageDraw.Draw(im)
