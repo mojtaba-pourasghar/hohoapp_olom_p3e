@@ -77,4 +77,9 @@ jobs:
           fi
           count=$(git diff --cached --name-only | grep -c 'res/raw/' || true)
           git commit -m "صدای هوهو: $count فایل گفتار با ${{ inputs.voice }}"
-          git push
+          # the APK build may have pushed meanwhile; rebase onto it instead of losing the audio
+          for attempt in 1 2 3; do
+            git pull --rebase --autostash origin master && git push && exit 0
+            sleep 10
+          done
+          exit 1
