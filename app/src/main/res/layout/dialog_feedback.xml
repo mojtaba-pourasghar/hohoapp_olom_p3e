@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Scrollable on purpose: a long hint used to push the button that advances to the next
+  question below the visible part of the sheet, which made the quiz look frozen.
+-->
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:fillViewport="true"
+    android:background="@drawable/bg_sheet">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:layoutDirection="rtl"
+        android:padding="20dp">
+
+        <TextView
+            android:id="@+id/fb_icon"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:gravity="center"
+            android:textSize="28sp" />
+
+        <TextView
+            android:id="@+id/fb_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/fb_message"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center"
+            android:lineSpacingExtra="6dp"
+            android:textSize="13.5sp"
+            android:textColor="@color/text_muted" />
+
+        <TextView
+            android:id="@+id/fb_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:gravity="center"
+            android:padding="16dp"
+            android:textColor="@color/white"
+            android:textStyle="bold"
+            android:textSize="15.5sp"
+            android:background="@drawable/bg_button_teal" />
+
+        <TextView
+            android:id="@+id/fb_repeat"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center"
+            android:padding="12dp"
+            android:text="دوباره بگو"
+            android:textColor="@color/text_primary"
+            android:textStyle="bold"
+            android:textSize="13sp"
+            android:background="@drawable/bg_help_button"
+            android:visibility="gone" />
+
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

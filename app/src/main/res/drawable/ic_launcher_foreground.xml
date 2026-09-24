@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <path android:fillColor="#D8811F" android:pathData="M24,48 C18,50 14,58 16,66 C18,72 26,74 30,70 L34,56 Z" />
+    <path android:fillColor="#D8811F" android:pathData="M84,48 C90,50 94,58 92,66 C90,72 82,74 78,70 L74,56 Z" />
+
+    <path android:fillColor="#E8973A" android:pathData="M 24,54 a 30,30 0 1,0 60,0 a 30,30 0 1,0 -60,0" />
+
+    <path android:fillColor="#FDF4E3" android:pathData="M38,44 C38,34 46,28 54,28 C62,28 70,34 70,44 L70,58 C70,68 62,72 54,72 C46,72 38,68 38,58 Z" />
+
+    <path android:fillColor="#FFFFFF" android:pathData="M 38,48 a 8,8 0 1,0 16,0 a 8,8 0 1,0 -16,0" />
+    <path android:fillColor="#3B3027" android:pathData="M 42.6,48 a 3.4,3.4 0 1,0 6.8,0 a 3.4,3.4 0 1,0 -6.8,0" />
+    <path android:fillColor="#FFFFFF" android:pathData="M 54,48 a 8,8 0 1,0 16,0 a 8,8 0 1,0 -16,0" />
+    <path android:fillColor="#3B3027" android:pathData="M 58.6,48 a 3.4,3.4 0 1,0 6.8,0 a 3.4,3.4 0 1,0 -6.8,0" />
+
+    <path android:fillColor="#D8811F" android:pathData="M54,56 L60,64 L48,64 Z" />
+
+    <!-- flower over the ear, matching the in-app character -->
+    <path android:fillColor="#D94F7A" android:pathData="M 26,30 a 5,5 0 1,0 10,0 a 5,5 0 1,0 -10,0" />
+    <path android:fillColor="#D94F7A" android:pathData="M 31,25 a 5,5 0 1,0 10,0 a 5,5 0 1,0 -10,0" />
+    <path android:fillColor="#D94F7A" android:pathData="M 31,35 a 5,5 0 1,0 10,0 a 5,5 0 1,0 -10,0" />
+    <path android:fillColor="#D94F7A" android:pathData="M 36,30 a 5,5 0 1,0 10,0 a 5,5 0 1,0 -10,0" />
+    <path android:fillColor="#F7C94B" android:pathData="M 32,30 a 4,4 0 1,0 8,0 a 4,4 0 1,0 -8,0" />
+</vector>

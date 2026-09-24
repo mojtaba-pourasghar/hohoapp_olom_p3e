@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="gutter">16dp</dimen>
+    <dimen name="card_radius">18dp</dimen>
+    <dimen name="chip_radius">999dp</dimen>
+    <dimen name="mascot_size">120dp</dimen>
+    <dimen name="mascot_size_small">84dp</dimen>
+    <dimen name="bottom_nav_height">64dp</dimen>
+</resources>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The × that closes هوهو's tooltip. White on a coloured ring so it reads as a real button
+     against the cream bubble instead of disappearing into it. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+    <solid android:color="@color/white" />
+    <stroke android:width="1.5dp" android:color="@color/orange" />
+</shape>

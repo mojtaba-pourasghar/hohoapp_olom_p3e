@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Vazirmatn Persian font embedded in res/font, applied app-wide. -->
+    <style name="Theme.HooHooOlom" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/teal</item>
+        <item name="colorPrimaryDark">@color/teal_dark</item>
+        <item name="colorAccent">@color/orange</item>
+        <item name="android:windowBackground">@color/bg_page</item>
+        <item name="android:statusBarColor">@color/bg_page</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:fontFamily">@font/vazirmatn</item>
+        <item name="fontFamily">@font/vazirmatn</item>
+        <item name="android:textViewStyle">@style/HooHooTextView</item>
+        <item name="android:buttonStyle">@style/HooHooButton</item>
+        <item name="materialButtonStyle">@style/HooHooButton</item>
+    </style>
+
+    <style name="HooHooTextView" parent="android:Widget.TextView">
+        <item name="android:fontFamily">@font/vazirmatn</item>
+    </style>
+
+    <style name="HooHooButton" parent="Widget.MaterialComponents.Button">
+        <item name="android:fontFamily">@font/vazirmatn</item>
+    </style>
+</resources>

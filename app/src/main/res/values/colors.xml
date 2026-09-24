@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg_page">#F2EFE6</color>
+    <color name="bg_splash">#FDF7EC</color>
+    <color name="bg_card">#FFFFFF</color>
+    <color name="bg_card_alt">#FBFAF6</color>
+    <color name="bg_card_muted">#FAFBF9</color>
+
+    <color name="text_primary">#2E3B36</color>
+    <color name="text_muted">#7A8A83</color>
+    <color name="text_faint">#9AA8A2</color>
+
+    <color name="teal">#3AA79A</color>
+    <color name="teal_dark">#2E8A7F</color>
+    <color name="teal_bg">#E9F2E7</color>
+    <color name="teal_border">#D5E5D1</color>
+    <color name="teal_light">#7CC4B9</color>
+
+    <color name="orange">#E8973A</color>
+    <color name="orange_dark">#D8811F</color>
+    <color name="orange_text">#A4700F</color>
+    <color name="orange_bg">#FDF4E3</color>
+    <color name="orange_border">#F0DFBE</color>
+
+    <color name="pink">#D94F7A</color>
+    <color name="pink_dark">#B33A65</color>
+    <color name="pink_bg">#FBEAF0</color>
+    <color name="pink_border">#F3D3DF</color>
+
+    <color name="owl_body">#E8973A</color>
+    <color name="owl_wing">#D8811F</color>
+    <color name="owl_face">#FDF4E3</color>
+    <color name="owl_pupil">#3B3027</color>
+    <color name="owl_hat">#2F6FB3</color>
+
+    <color name="border_light">#DCD6C6</color>
+    <color name="border_card">#E3DFD2</color>
+    <color name="border_input">#E6E2D6</color>
+    <color name="border_muted">#EFECE3</color>
+    <color name="border_green">#E8EEE6</color>
+
+    <color name="lock_bg">#B9C4BF</color>
+
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+</resources>

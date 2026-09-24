@@ -1,0 +1,288 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Tablets. Question on one side, هوهو's help panel on the other — and both stretch to the full
+  height of the screen, instead of huddling at the top of a scroll view with the bottom half of
+  the tablet left blank. The buttons live on the help side so the owl's corner stays clear.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="@color/bg_card_alt">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/quiz_exit"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="خروج"
+            android:textColor="@color/pink_dark"
+            android:textStyle="bold"
+            android:padding="6dp"
+            android:textSize="13sp" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:id="@+id/quiz_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textStyle="bold"
+                android:textSize="14sp"
+                android:textColor="@color/text_primary" />
+
+            <TextView
+                android:id="@+id/quiz_subtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textSize="11.5sp"
+                android:textColor="@color/text_muted" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/quiz_count"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:textColor="@color/teal" />
+    </LinearLayout>
+
+    <ProgressBar
+        android:id="@+id/quiz_progress"
+        style="@android:style/Widget.ProgressBar.Horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="7dp"
+        android:layout_marginTop="10dp"
+        android:max="100"
+        android:progressDrawable="@drawable/progress_orange" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal"
+        android:layout_marginTop="14dp"
+        android:baselineAligned="false">
+
+        <!-- question side (start side, so on the right in RTL) -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1.25"
+            android:layout_marginEnd="8dp"
+            android:orientation="vertical"
+            android:padding="18dp"
+            android:background="@drawable/bg_card_white">
+
+            <TextView
+                android:id="@+id/quiz_number"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="12.5sp"
+                android:textStyle="bold"
+                android:textColor="@color/pink" />
+
+            <ScrollView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:layout_marginTop="10dp"
+                android:clipToPadding="false"
+                android:scrollbars="none">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/quiz_question"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textSize="18.5sp"
+                        android:textStyle="bold"
+                        android:lineSpacingExtra="8dp"
+                        android:textColor="@color/text_primary" />
+
+                    <LinearLayout
+                        android:id="@+id/quiz_answer_area"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:gravity="center_horizontal"
+                        android:layout_marginTop="14dp"
+                        android:paddingBottom="70dp" />
+                </LinearLayout>
+            </ScrollView>
+        </LinearLayout>
+
+        <!-- help side: هوهو's buttons, then the controls -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:orientation="vertical">
+
+            <ScrollView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:clipToPadding="false"
+                android:scrollbars="none">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp"
+                        android:background="@drawable/bg_card_white">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="کمک‌ها"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_primary" />
+
+                        <TextView
+                            android:id="@+id/quiz_read_aloud"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="11dp"
+                            android:padding="12dp"
+                            android:text="سؤال را برایم بخوان"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_primary"
+                            android:background="@drawable/bg_help_button" />
+
+                        <TextView
+                            android:id="@+id/quiz_hint"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:padding="12dp"
+                            android:text="راهنمای هوهو"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_primary"
+                            android:background="@drawable/bg_help_button" />
+
+                        <TextView
+                            android:id="@+id/quiz_reveal"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:padding="12dp"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/pink_dark"
+                            android:background="@drawable/bg_help_button_pink" />
+
+                        <TextView
+                            android:id="@+id/quiz_reveal_note"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="9dp"
+                            android:textSize="11.5sp"
+                            android:lineSpacingExtra="4dp"
+                            android:textColor="@color/text_muted" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/quiz_progress_note"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:padding="15dp"
+                        android:textSize="12.5sp"
+                        android:lineSpacingExtra="5dp"
+                        android:textColor="#8B7A52"
+                        android:background="@drawable/bg_card_orange" />
+                </LinearLayout>
+            </ScrollView>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layoutDirection="rtl"
+                android:layout_marginTop="12dp">
+
+                <TextView
+                    android:id="@+id/quiz_prev"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="7dp"
+                    android:gravity="center"
+                    android:padding="13dp"
+                    android:text="‹ سؤال قبل"
+                    android:textSize="12.5sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:background="@drawable/bg_help_button" />
+
+                <TextView
+                    android:id="@+id/quiz_repeat"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="7dp"
+                    android:gravity="center"
+                    android:padding="13dp"
+                    android:text="تکرار سؤال 🔊"
+                    android:textSize="12.5sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/orange_text"
+                    android:background="@drawable/bg_card_orange" />
+
+                <TextView
+                    android:id="@+id/quiz_next"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:padding="13dp"
+                    android:text="سؤال بعد ›"
+                    android:textSize="12.5sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:background="@drawable/bg_help_button" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/quiz_finish"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="9dp"
+                android:gravity="center"
+                android:padding="14dp"
+                android:text="پایان و دیدن کارنامه"
+                android:textSize="13.5sp"
+                android:textStyle="bold"
+                android:textColor="@color/white"
+                android:background="@drawable/bg_button_teal" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

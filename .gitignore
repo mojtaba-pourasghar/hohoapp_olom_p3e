@@ -1,0 +1,17 @@
+*.iml
+.gradle/
+/local.properties
+/.idea/
+.DS_Store
+/build/
+/captures/
+.externalNativeBuild/
+.cxx/
+app/build/
+app/release/
+
+__pycache__/
+*.pyc
+
+# APK copies made at the repo root just to hand to the user; the real one is dist/
+/hoohoo-olom-*.apk
