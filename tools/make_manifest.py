@@ -12,6 +12,7 @@ grouped under each chapter, and inside it under each page and each section.
 """
 import glob
 import hashlib
+import json
 import os
 import re
 import sys
@@ -25,6 +26,20 @@ VOWELS_ON = "--plain" not in sys.argv
 
 def spoken(text):
     return _spoken(text, vowels=VOWELS_ON)
+
+
+# Lines whose spoken form was fixed by hand in the voice studio. The manifest is generated, so
+# an edit made there would be lost on the next rebuild — it is kept here instead, and applied
+# last. This file is in git, so the correction travels with the project.
+OVERRIDES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "voice-overrides.json")
+
+
+def overrides():
+    try:
+        with open(OVERRIDES, encoding="utf-8") as fh:
+            return json.load(fh)
+    except (OSError, ValueError):
+        return {}
 
 SRC = "app/src/main/java/com/hoohooolom/app/data"
 OUT = "app/src/main/res/raw/audio_manifest.txt"
@@ -100,6 +115,7 @@ def question_words():
                 texts += [f[3], f[4]] + f[5:]
             elif f[0] == "T":
                 texts += ["درست یا نادرست؟ " + f[3], f[5], "درست", "نادرست"]
+    texts += hint_texts() + ui_texts()
     for text in texts:
         for piece in DIGITS.split(text):
             piece = spoken_form(piece)
@@ -107,9 +123,87 @@ def question_words():
                 continue
             seen.add(piece)
             key = phrase_key(piece)
-            lines.append("%s | %s | %s" % (key, piece, spoken(piece)))
+            lines.append("%s | %s | %s" % (key, piece, FIXED.get(key) or spoken(piece)))
             count += 1
     return "\n".join(lines), count
+
+
+# ── what the book's structure says on its own ─────────────────────────────────
+BOOK = os.path.join(SRC, "Book.java")
+FA = str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹")
+
+
+def book_sections():
+    """[(numberFa, [section names])] for the fourteen lessons, straight from Book.java."""
+    src = open(BOOK, encoding="utf-8").read()
+    out = []
+    for m in re.finditer(r'new Chapter\(\s*\d+\s*,\s*"([^"]+)"\s*,\s*"[^"]*"\s*,\s*\d+\s*,\s*\d+\s*,(.*?)\)', src, re.S):
+        out.append((m.group(1), LITERAL.findall(m.group(2))))
+    return out
+
+
+def section_pages():
+    """{(chapter, section): [pages]} — which book pages each section's parts come from."""
+    pages = {}
+    for path in glob.glob(os.path.join(SRC, "Chapter*Pages.java")):
+        for m in re.finditer(r"new LessonScript\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)", open(path, encoding="utf-8").read()):
+            pages.setdefault((int(m.group(1)), int(m.group(2))), []).append(int(m.group(3)))
+    return {k: sorted(v) for k, v in pages.items()}
+
+
+def page_span(pages):
+    first = str(pages[0]).translate(FA)
+    return first + (" تا " + str(pages[-1]).translate(FA) if len(pages) > 1 else "")
+
+
+def review_lines():
+    """The section reviews (data/Lessons.java): its opening and closing lines, word for word."""
+    sections, pages = book_sections(), section_pages()
+    lines = ["\n\n# ══════════ مرورِ بخش‌ها ══════════",
+             "# همان جمله‌هایی که data/Lessons.java برای اوّل و آخرِ هر مرور می‌سازد."]
+    count = 0
+    for ch, (number, names) in enumerate(sections):
+        for sec, name in enumerate(names):
+            ps = pages.get((ch, sec))
+            if not ps:
+                continue
+            key = "ch%02d_s%d_" % (ch + 1, sec + 1)
+            intro = ("مرورِ بخشِ «" + name + "» از درسِ " + number + ". این بخش صفحه‌ی "
+                     + page_span(ps) + " کتاب است. بیا دوباره سؤال‌هایش را با هم جواب بدهیم تا خوب یادت بماند.")
+            done = "آفرین! مرورِ بخشِ «" + name + "» تمام شد. حالا تمرین‌های همین بخش را حل کن."
+            lines.append("%sintro | %s | %s" % (key, intro, spoken(intro)))
+            lines.append("%sdone | %s | %s" % (key, done, spoken(done)))
+            count += 2
+    return lines, count
+
+
+def hint_texts():
+    """The «راهنما» of every quiz question (QuizFragment.hintFor), one per section."""
+    sections, pages = book_sections(), section_pages()
+    out = ["جواب درست:"]
+    for ch, (number, names) in enumerate(sections):
+        for sec, name in enumerate(names):
+            ps = pages.get((ch, sec))
+            where = (" صفحه‌ی " + page_span(ps) + " کتاب را دوباره ببین.") if ps else ""
+            out.append("این سؤال از بخشِ «" + name + "» است." + where)
+    return out
+
+
+UI = "app/src/main/java/com/hoohooolom/app/ui"
+
+
+def ui_texts():
+    """Fixed lines هوهو says on the app's screens: each screen's tip and her nudges."""
+    out = []
+    for path in sorted(glob.glob(os.path.join(UI, "**", "*.java"), recursive=True)):
+        src = open(path, encoding="utf-8").read()
+        for m in re.finditer(r"entryTip\(\)\s*\{\s*return\s+((?:\"(?:[^\"\\]|\\.)*\"\s*\+?\s*)+);", src):
+            out.append("".join(LITERAL.findall(m.group(1))))
+        for m in re.finditer(r"\.(?:say|comfort|celebrate)\(\s*\"((?:[^\"\\]|\\.)*)\"\s*\)", src):
+            out.append(m.group(1))
+        for m in re.finditer(r"String nudge = [^;]*;", src, re.S):
+            out += LITERAL.findall(m.group(0))
+    return out
 
 
 HEADER = """# فهرست گفتارهای درس — هوهو علوم
@@ -118,32 +212,31 @@ HEADER = """# فهرست گفتارهای درس — هوهو علوم
 #     <نام فایل> | <متنی که هوهو می‌گوید> | <تلفظ آوایی برای ضبط صدا>
 #
 # ستون دوم همان چیزی است که در اپ نوشته و خوانده می‌شود.
-# ستون سوم فقط برای ساختِ صداست: نمادها و عددها به واژه تبدیل شده‌اند و واژه‌هایی که موتور
-# گفتار اشتباه می‌خواند (کسر، مخرج، محور، …) با اعراب نوشته شده‌اند. اپ این ستون را نمی‌خواند.
-# اگر واژه‌ای هنوز بد تلفظ شد، آن را در جدولِ WORDS در tools/pronounce.py اصلاح کن.
+# ستون سوم مبنای ساختِ صداست: نمادها و عددها به واژه تبدیل شده‌اند و همه‌ی واژه‌ها اعراب دارند
+# (جدولش در tools/vowels.py). اگر واژه‌ای بد خوانده شد، همان‌جا اصلاحش کن، یا متنِ همان یک خط
+# را در استودیوی صداگذاری عوض کن (در tools/voice-overrides.json می‌ماند).
 #
-# کلیدهایی که به x ختم می‌شوند، مثالِ بیشترِ همان گام هستند (دکمه‌ی «یک مثال دیگر بزن») و با
-# سرعتِ کمتری ضبط می‌شوند. کلیدهایی که به f ختم می‌شوند، بازخوردِ بعد از جوابِ کودک‌اند.
+# کلیدها:
+#   tPPP_NN     گامِ درس (PPP صفحه‌ی کتاب)      …x  «یک مثال دیگر»      …f  بازخوردِ بعد از جواب
+#   chNN_sN_…   اوّل و آخرِ مرورِ هر بخش
+#   n_… و va    واژه‌های عدد            q_…  تکه‌های ثابتِ سؤال‌ها، راهنماها و جمله‌های صفحه‌ها
 #
 # این فایل با دست نوشته نمی‌شود — از خودِ درس‌ها ساخته می‌شود:
 #     python3 tools/make_manifest.py
 #
 # ── ساخت فایل‌های صوتی ────────────────────────────────────────────────
-#     pip install edge-tts
-#     python3 tools/make_voice.py
-#
-# اگر خودت ضبط می‌کنی، فایل را با همان نام در app/src/main/res/raw/ بگذار
-# (مثلاً p007_01.ogg). پسوندهای ogg و mp3 و wav هر سه کار می‌کنند.
-#
-# اگر فایلی نباشد، اپ همان متن را با موتور گفتار فارسی دستگاه می‌خواند.
+# با استودیوی صداگذاری (tools/voice-studio، آواشو). کلیپ‌ها و index.json روی هاست می‌روند:
+#     /public_html/grade-3/olom/audio   ←→   http://mp-apdl.ir/grade-3/olom/audio/
+# و اپ هرچه لازم دارد را از همان‌جا دانلود می‌کند. اگر کلیپی نباشد، اپ همان جمله را با
+# موتور گفتار فارسی دستگاه می‌خواند.
 #
 # تعداد کل گفتارها: {count}
 """
 
 
-# the feedback هوهو gives after an answer is the last text argument of an mcq/num/build step;
+# the feedback هوهو gives after an answer is the last text argument of an mcq/num/pick step;
 # it is spoken too, so it needs a recording of its own — same key as the step, plus «f»
-CALL = re.compile(r"LessonStep\.(?:mcq|num|build)\s*\(")
+CALL = re.compile(r"LessonStep\.(?:mcq|num|build|pick)\s*\(")
 
 
 def call_literals(src, open_paren):
@@ -203,12 +296,21 @@ def read_block(path):
         else:
             key, text = value
             text = text.replace("\\n", " ")
-            lines.append("%s | %s | %s" % (key, text, spoken(text)))
+            said = FIXED.get(key) or spoken(text)
+            lines.append("%s | %s | %s" % (key, text, said))
             count += 1
     return lines, count
 
 
+FIXED = {}
+
+
 def main():
+    global FIXED
+    FIXED = overrides()
+    if FIXED:
+        print("اصلاحِ دستیِ متن: %d خط از %s" % (len(FIXED), os.path.basename(OVERRIDES)))
+
     blocks = []
     total = 0
     for index, (number, title) in enumerate(CHAPTERS, 1):
@@ -227,6 +329,10 @@ def main():
         name = os.path.basename(path)
         if not re.match(r"Chapter([1-9]|1[0-4])(Pages|Quiz)\.java$", name):
             print("note: %s is not in the chapter list and was skipped" % name)
+
+    reviews, review_count = review_lines()
+    blocks.append("\n".join(reviews))
+    total += review_count
 
     words, word_count = question_words()
     total += word_count

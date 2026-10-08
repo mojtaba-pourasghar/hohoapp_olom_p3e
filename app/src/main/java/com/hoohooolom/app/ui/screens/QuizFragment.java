@@ -293,7 +293,17 @@ public class QuizFragment extends BaseFragment {
             FeedbackDialog.show(requireContext(), true, it.hint, btnLabel, proceed);
         } else {
             String msg = "جواب درست: «" + it.answerFa + "». " + it.hint;
-            mascot().comfort(msg);
+            // read as three recorded pieces: the fixed opening, the answer, the explanation
+            java.util.List<String> said = new java.util.ArrayList<>();
+            java.util.List<String> lead = QuestionVoice.clips("جواب درست:");
+            java.util.List<String> answer = QuestionVoice.clips(it.answerFa);
+            java.util.List<String> why = QuestionVoice.clips(it.hint);
+            if (lead != null && answer != null && why != null) {
+                said.addAll(lead);
+                said.addAll(answer);
+                said.addAll(why);
+            }
+            mascot().comfort(msg, said.isEmpty() ? null : said);
             FeedbackDialog.show(requireContext(), false, msg, btnLabel, proceed);
         }
     }

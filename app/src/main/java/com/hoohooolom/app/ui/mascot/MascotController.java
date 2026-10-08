@@ -10,6 +10,7 @@ import android.widget.TextView;
 import com.hoohooolom.app.data.AppState;
 import com.hoohooolom.app.tts.LessonAudio;
 import com.hoohooolom.app.tts.NarrationText;
+import com.hoohooolom.app.tts.QuestionVoice;
 import com.hoohooolom.app.tts.HootSoundPlayer;
 import com.hoohooolom.app.tts.SoundManager;
 import com.hoohooolom.app.tts.TtsManager;
@@ -106,15 +107,31 @@ public class MascotController {
 
     /** هوهو speaks a line and its beak animates while the audio plays. */
     public void say(String text) {
+        say(text, null);
+    }
+
+    /**
+     * هوهو speaks a line from the given clips, played one after another — the way a quiz answer
+     * is read: «جواب درست», then the answer, then the explanation, each recorded once.
+     *
+     * Without clips, a line that is in the manifest is played from its own recording; a line
+     * that is not (a quiz explanation, made of pieces) is read from its recorded pieces. If any
+     * piece is missing, the device voice reads the whole line instead.
+     */
+    public void say(String text, java.util.List<String> clips) {
         setBubble(text);
         owl.setSpeaking(true);
-        // a line that is in the manifest has a key, so a recorded clip is used once one exists;
-        // otherwise this falls through to the device voice reading the same words
-        LessonAudio.play(owl.getContext(), NarrationText.keyForText(text), text,
-            new LessonAudio.PlaybackListener() {
-                @Override public void onStarted(long durationMs) { }
-                @Override public void onFinished() { owl.post(() -> owl.setSpeaking(false)); }
-            });
+        LessonAudio.PlaybackListener done = new LessonAudio.PlaybackListener() {
+            @Override public void onStarted(long durationMs) { }
+            @Override public void onFinished() { owl.post(() -> owl.setSpeaking(false)); }
+        };
+        String key = NarrationText.keyForText(text);
+        if (clips == null && key == null) clips = QuestionVoice.clips(text);
+        if (clips != null) {
+            LessonAudio.playSequence(owl.getContext(), clips, text, done);
+        } else {
+            LessonAudio.play(owl.getContext(), key, text, done);
+        }
     }
 
     /** Correct answer: happy bounce, a sparkle, sometimes a hoot, then back to idle. */
@@ -136,10 +153,15 @@ public class MascotController {
 
     /** Wrong answer: thoughtful, not flying — no need to make the kid feel worse. */
     public void comfort(String encouragementText) {
+        comfort(encouragementText, null);
+    }
+
+    /** The same, read from the given clips (see {@link #say(String, java.util.List)}). */
+    public void comfort(String encouragementText, java.util.List<String> clips) {
         cancelPendingRevert();
         owl.setMood(HooHooView.Mood.THINKING);
         owl.setFlying(false);
-        if (encouragementText != null) say(encouragementText);
+        if (encouragementText != null) say(encouragementText, clips);
         pendingRevert = () -> owl.setMood(HooHooView.Mood.IDLE);
         handler.postDelayed(pendingRevert, 2600);
     }
