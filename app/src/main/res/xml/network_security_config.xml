@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The narration and the worksheets are served over plain http from the teacher's own host, and
+  Android has refused cleartext by default since 9. Rather than opening the whole app up, only
+  that one host is allowed through; everything else still has to be https.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">mp-apdl.ir</domain>
+    </domain-config>
+</network-security-config>

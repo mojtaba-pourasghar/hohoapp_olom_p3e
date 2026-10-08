@@ -1,0 +1,26 @@
+{
+  "name": "hoohoo-voice-studio",
+  "version": "1.0.0",
+  "private": true,
+  "description": "استودیوی صداگذاری هوهو — متن را از audio_manifest.txt می‌خواند و با آواشو تکی ضبط می‌کند",
+  "type": "module",
+  "scripts": {
+    "start": "vite build && node server/index.js",
+    "server": "node server/index.js",
+    "dev": "concurrently -n server,web -c yellow,cyan \"node server/index.js\" \"vite\""
+  },
+  "dependencies": {
+    "basic-ftp": "^6.2.2",
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "concurrently": "^9.0.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "vite": "^5.4.8"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -17,10 +17,13 @@ import com.hoohooolom.app.data.AppState;
 import com.hoohooolom.app.data.Book;
 import com.hoohooolom.app.data.Lessons;
 import com.hoohooolom.app.data.PageLessons;
+import com.hoohooolom.app.data.VoiceCatalog;
+import com.hoohooolom.app.net.Net;
 import com.hoohooolom.app.data.LessonKind;
 import com.hoohooolom.app.data.LessonScript;
 import com.hoohooolom.app.data.LessonStep;
 import com.hoohooolom.app.tts.LessonAudio;
+import com.hoohooolom.app.tts.VoiceStore;
 import com.hoohooolom.app.tts.SoundManager;
 import com.hoohooolom.app.ui.BaseFragment;
 import com.hoohooolom.app.ui.FeedbackDialog;
@@ -243,6 +246,47 @@ public class LessonFragment extends BaseFragment {
         });
     }
 
+    /**
+     * When this step's clip has not been downloaded, a line offering to fetch the chapter.
+     *
+     * Nothing is broken without it — the device voice reads the same words — so this is an
+     * offer, not a warning, and it disappears the moment the clip is on the device. Tapping it
+     * pulls the whole chapter down, because a child who wants this line will want the next one.
+     */
+    private View voiceDownloadOffer(LessonStep step) {
+        if (step == null || step.audioKey == null) return null;
+        if (VoiceStore.has(requireContext(), step.audioKey)) return null;
+        if (VoiceCatalog.fileName(requireContext(), step.audioKey) == null) return null;
+
+        final int which = VoiceCatalog.chapterOf(step.audioKey);
+        TextView offer = UiKit.text(requireContext(),
+            Net.online(requireContext())
+                ? "🔊 صدای هوهو برای این درس روی دستگاه نیست. بزن تا دانلود شود."
+                : "🔊 صدای هوهو برای این درس نیامده. وقتی اینترنت وصل شد، خودش می‌آید.",
+            12.5f, R.color.orange_text, true);
+        int pad = UiKit.dp(requireContext(), 12);
+        offer.setPadding(pad, pad, pad, pad);
+        UiKit.applyCardBg(offer, requireContext(), R.color.orange_bg, R.color.orange_border);
+        if (Net.online(requireContext())) {
+            offer.setOnClickListener(v -> {
+                offer.setText("در حال دانلود…");
+                VoiceStore.pause(false);
+                VoiceStore.downloadChapter(requireContext(), which, new VoiceStore.Progress() {
+                    @Override public void onProgress(int chapterIndex, int done, int total) {
+                        if (isAdded()) offer.setText("در حال دانلود… " + fa(done) + " از " + fa(total));
+                    }
+                    @Override public void onFinished(int chapterIndex, int downloaded, int failed) {
+                        if (!isAdded()) return;
+                        offer.setText(failed == 0
+                            ? "✓ صدا آمد — «دوباره بگو» را بزن"
+                            : "بعضی‌ها نیامدند؛ بعداً دوباره تلاش می‌شود");
+                    }
+                });
+            });
+        }
+        return offer;
+    }
+
     // ---------- the child's turn ----------
 
     private TextView continueButton;
@@ -251,6 +295,9 @@ public class LessonFragment extends BaseFragment {
         LinearLayout content = rootView.findViewById(R.id.lesson_content);
         content.removeAllViews();
         continueButton = null;
+
+        View offer = voiceDownloadOffer(step);
+        if (offer != null) content.addView(offer, UiKit.marginParams(requireContext(), 0, 10));
 
         switch (step.kind) {
             case TEACH: {

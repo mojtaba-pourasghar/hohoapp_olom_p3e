@@ -58,7 +58,7 @@ public class ExamIndexFragment extends BaseFragment {
             // a half-finished set is picked up where it stopped, so the card says so
             boolean halfDone = s.hasAttempt("EXAM_" + ch.index + "_" + level.index);
             list.addView(ScreenHelpers.buildLevelCard(requireContext(), level,
-                halfDone ? "آزمون نیمه‌کاره — از همان سؤال ادامه می‌دهی" : "۱۵ سؤال چندگزینه‌ای · از همه‌ی بخش‌های فصل", () -> {
+                halfDone ? "آزمون نیمه‌کاره — از همان سؤال ادامه می‌دهی" : "۱۵ سؤال چندگزینه‌ای · از همه‌ی بخش‌های درس", () -> {
                 Bundle args = new Bundle();
                 args.putString("mode", "EXAM");
                 args.putInt("chapter", ch.index);

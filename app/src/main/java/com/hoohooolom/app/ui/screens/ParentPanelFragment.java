@@ -117,6 +117,7 @@ public class ParentPanelFragment extends BaseFragment {
         for (int i = 0; i < SETTING_LABELS.length; i++) {
             settings.addView(buildSettingRow(SETTING_LABELS[i], i, s));
         }
+        settings.addView(buildVoiceRow());
 
         LinearLayout results = view.findViewById(R.id.panel_results);
         results.removeAllViews();
@@ -199,7 +200,7 @@ public class ParentPanelFragment extends BaseFragment {
         }
         if (worstChapter >= 0 && worstRatio < 0.7f) {
             Book.Chapter ch = Book.chapter(worstChapter);
-            tips.add("در درس " + ch.numberFa + " (" + ch.title + ")، " + fa(Math.round(worstRatio * 100)) + "٪ پاسخ‌ها درست بوده. پیشنهاد: کاربرگ تمرینی همین فصل را با او کار کنید.");
+            tips.add("در درس " + ch.numberFa + " (" + ch.title + ")، " + fa(Math.round(worstRatio * 100)) + "٪ پاسخ‌ها درست بوده. پیشنهاد: کاربرگ تمرینی همین درس را با او کار کنید.");
         } else {
             tips.add("پیشرفت خوبی دارد! می‌توانید سطح سخت‌تر کاربرگ‌ها را هم امتحان کنید.");
         }
@@ -212,6 +213,33 @@ public class ParentPanelFragment extends BaseFragment {
         UiKit.applyCardBg(row, requireContext(), R.color.orange_bg, R.color.orange_border);
         row.setLayoutParams(UiKit.marginParams(requireContext(), 0, 6));
         row.addView(UiKit.text(requireContext(), text, 12.5f, R.color.orange_text, false));
+        return row;
+    }
+
+    /**
+     * The way in to «دانلود صدای هوهو». The clips live on the host, not in the APK, so this is
+     * where a parent on a good connection can pull a chapter down before a car journey.
+     */
+    private View buildVoiceRow() {
+        java.util.List<String> all = com.hoohooolom.app.data.VoiceCatalog.keys(requireContext());
+        int have = com.hoohooolom.app.tts.VoiceStore.countHave(requireContext(), all);
+        String note = all.isEmpty()
+            ? "فهرست صداها هنوز خوانده نشده"
+            : fa(have) + " گفتار از " + fa(all.size()) + " روی دستگاه است";
+
+        LinearLayout row = UiKit.row(requireContext());
+        row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        int pad = UiKit.dp(requireContext(), 12);
+        row.setPadding(pad, pad, pad, pad);
+        UiKit.applyCardBg(row, requireContext(), R.color.teal_bg, R.color.teal_border);
+        row.setLayoutParams(UiKit.marginParams(requireContext(), 10, 0));
+
+        LinearLayout labels = UiKit.column(requireContext());
+        labels.addView(UiKit.text(requireContext(), "دانلود صدای هوهو", 13.5f, R.color.text_primary, true));
+        labels.addView(UiKit.text(requireContext(), note, 11.5f, R.color.text_muted, false));
+        row.addView(labels, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        row.addView(UiKit.text(requireContext(), "برو ›", 13f, R.color.teal_dark, true));
+        row.setOnClickListener(v -> nav().go(Screen.VOICE_DOWNLOAD));
         return row;
     }
 

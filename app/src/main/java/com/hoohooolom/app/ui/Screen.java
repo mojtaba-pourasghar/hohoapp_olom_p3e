@@ -8,6 +8,7 @@ public enum Screen {
     SECTIONS,
     WORKSHEET_INDEX,
     WORKSHEET_DOWNLOAD,
+    VOICE_DOWNLOAD,
     EXAM_INDEX,
     QUIZ,
     RESULT,

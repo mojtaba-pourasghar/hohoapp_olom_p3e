@@ -15,3 +15,8 @@ __pycache__/
 
 # APK copies made at the repo root just to hand to the user; the real one is dist/
 /hoohoo-olom-*.apk
+
+# the studio writes the finished clips and the worksheet folders here, on the
+# developer's own machine; they go to the host over FTP, not into the repo
+/tools/voice-out/
+/tools/karbarg-out/

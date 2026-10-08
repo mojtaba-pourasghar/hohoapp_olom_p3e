@@ -1,0 +1,133 @@
+:root {
+  --bg: #f6f3ee;
+  --card: #ffffff;
+  --ink: #2f2a24;
+  --muted: #8a8075;
+  --line: #e7e0d6;
+  --orange: #f08a24;
+  --orange-soft: #fff3e3;
+  --teal: #3aa79a;
+  --teal-soft: #e8f6f4;
+  --pink: #e0607e;
+  --pink-soft: #fdecf0;
+  --radius: 14px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.7 "Vazirmatn", "IRANSans", "Segoe UI", Tahoma, sans-serif;
+}
+
+.studio { max-width: 1180px; margin: 0 auto; padding: 0 16px 56px; }
+
+/* ── header ─────────────────────────────────────────────────────────────── */
+.top {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  background: linear-gradient(90deg, #ef7f12, #f4a63c);
+  color: #fff; border-radius: 0 0 var(--radius) var(--radius);
+  padding: 14px 20px; margin-bottom: 20px;
+  box-shadow: 0 6px 18px rgba(240, 138, 36, .25);
+}
+.top .owl { font-size: 30px; background: rgba(255,255,255,.22); border-radius: 50%; padding: 6px 10px; }
+.top h1 { font-size: 19px; margin: 0; font-weight: 700; }
+.top p { margin: 2px 0 0; font-size: 12.5px; opacity: .92; }
+.top .grow { flex: 1; }
+
+/* ── cards & grid ───────────────────────────────────────────────────────── */
+.card {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 16px 18px; margin-bottom: 16px;
+}
+.card h2 { margin: 0 0 12px; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+.card h2 .hint { font-weight: 400; font-size: 12px; color: var(--muted); }
+
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-bottom: 16px; }
+.stat { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; }
+.stat .label { font-size: 12.5px; color: var(--muted); }
+.stat .value { font-size: 28px; font-weight: 700; margin-top: 2px; letter-spacing: -.5px; }
+.stat .foot { font-size: 11.5px; color: var(--muted); }
+.stat.on { border-color: var(--teal); box-shadow: inset 0 2px 0 var(--teal); }
+.bar { height: 6px; background: #eee9e1; border-radius: 99px; overflow: hidden; margin-top: 8px; }
+.bar i { display: block; height: 100%; background: var(--teal); transition: width .3s; }
+
+/* ── forms ──────────────────────────────────────────────────────────────── */
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+label { display: block; font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+input[type=text], input[type=password], input[type=number], select {
+  width: 100%; padding: 9px 11px; border: 1px solid var(--line); border-radius: 9px;
+  background: #fcfbf9; color: var(--ink); font: inherit; font-size: 13.5px;
+}
+input:focus, select:focus { outline: 2px solid var(--orange-soft); border-color: var(--orange); }
+.check { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--ink); margin-top: 22px; }
+.check input { width: 17px; height: 17px; accent-color: var(--teal); }
+
+/* ── buttons ────────────────────────────────────────────────────────────── */
+.row { display: flex; gap: 9px; flex-wrap: wrap; align-items: center; }
+button {
+  font: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+  border-radius: 10px; padding: 9px 15px; border: 1px solid transparent;
+  background: #f1ece4; color: var(--ink); transition: filter .15s;
+}
+button:hover:not(:disabled) { filter: brightness(.96); }
+button:disabled { opacity: .5; cursor: not-allowed; }
+button.go { background: var(--teal); color: #fff; }
+button.warn { background: var(--pink); color: #fff; }
+button.ghost { background: #fff; border-color: var(--line); }
+button.chip { background: var(--orange-soft); border-color: #f6d9b4; color: #9a5a06; }
+button.chip.sel { background: var(--orange); border-color: var(--orange); color: #fff; }
+button.tiny { padding: 4px 9px; font-size: 11.5px; border-radius: 7px; }
+
+/* ── log ────────────────────────────────────────────────────────────────── */
+.log {
+  background: #221f1b; color: #e8e3da; border-radius: var(--radius);
+  padding: 14px 16px; font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 12px; line-height: 1.85; max-height: 290px; overflow: auto;
+  direction: ltr; text-align: left;
+}
+.log .t { color: #8d857a; }
+.log .ok { color: #7fd1a6; }
+.log .info { color: #8ec5e8; }
+.log .warn { color: #f0c674; }
+.log .error { color: #f09090; }
+.log-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+
+/* ── file list ──────────────────────────────────────────────────────────── */
+.files { max-height: 420px; overflow: auto; border: 1px solid var(--line); border-radius: 11px; }
+.file {
+  display: grid; grid-template-columns: 112px 1fr auto; gap: 10px; align-items: center;
+  padding: 9px 12px; border-bottom: 1px solid #f2ede5; font-size: 13px;
+}
+.file:last-child { border-bottom: 0; }
+.file:hover { background: #fdfbf7; }
+.file .key { font-family: ui-monospace, monospace; font-size: 11.5px; color: var(--muted); direction: ltr; }
+.file .say { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file .tag { font-size: 11px; padding: 2px 8px; border-radius: 99px; background: #f1ece4; color: var(--muted); }
+.file .tag.done { background: var(--teal-soft); color: #1f6f66; }
+audio { height: 30px; }
+.empty { padding: 26px; text-align: center; color: var(--muted); font-size: 13px; }
+.note { font-size: 12.5px; color: var(--muted); margin: 6px 0 0; }
+.err { background: var(--pink-soft); border: 1px solid #f3c9d4; color: #9c2b46;
+       padding: 9px 12px; border-radius: 10px; font-size: 13px; margin-bottom: 12px; }
+
+textarea {
+  border: 1px solid var(--line); border-radius: 9px; background: #fcfbf9;
+  color: var(--ink); font: inherit; font-size: 13.5px; padding: 9px 11px;
+  line-height: 1.9; resize: vertical;
+}
+textarea:focus { outline: 2px solid var(--orange-soft); border-color: var(--orange); }
+.file { align-items: start; }
+
+/* a voice sample needs room for the name, the gender and the pace before the player */
+.file.sample { grid-template-columns: 180px 1fr auto; align-items: center; }
+optgroup { font-weight: 700; color: var(--muted); }
+optgroup option { font-weight: 400; color: var(--ink); }
+
+/* the FTP connection state, outside the dark log where .ok/.warn live */
+.state { font-weight: 700; }
+.state.ok { color: #1f6f66; }
+.state.warn { color: #9a6b12; }
+.state.bad { color: #9c2b46; }

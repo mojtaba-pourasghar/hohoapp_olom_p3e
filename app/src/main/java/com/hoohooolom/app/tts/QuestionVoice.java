@@ -58,15 +58,26 @@ public final class QuestionVoice {
             } else {
                 int start = i;
                 while (i < n && !isDigit(question.charAt(i))) i++;
-                String piece = question.substring(start, i).trim();
-                // punctuation on its own is a pause, not a word — nothing to play
-                if (!piece.isEmpty() && !spokenForm(piece).isEmpty()) out.add(phraseKey(piece));
+                String piece = question.substring(start, i);
+                // The clip is named after the words it says, not after the written piece —
+                // tools/make_manifest.py hashes spokenForm(piece), so this has to as well. It
+                // once hashed the written piece, and then «۳ × ۴ = ⬜» asked for a name nothing
+                // was ever recorded under: every question with a symbol or a full stop in it
+                // fell back to the device voice, and on a phone without a Persian engine that
+                // is silence. Punctuation on its own says nothing, so it plays nothing.
+                String said = spokenForm(piece);
+                if (!said.isEmpty()) out.add(phraseKey(said));
             }
         }
         return out.isEmpty() ? null : out;
     }
 
-    /** The res/raw name of a piece of wording — the same name tools/make_manifest.py writes. */
+    /**
+     * The clip name for a piece of wording, from the words it is read as.
+     *
+     * The caller passes the spoken form — see clips() — because that is what
+     * tools/make_manifest.py hashes when it names the recording.
+     */
     public static String phraseKey(String piece) {
         try {
             MessageDigest sha1 = MessageDigest.getInstance("SHA-1");

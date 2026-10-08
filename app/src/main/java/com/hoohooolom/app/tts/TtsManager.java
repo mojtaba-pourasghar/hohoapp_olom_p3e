@@ -51,7 +51,11 @@ public class TtsManager {
 
     private boolean persianAvailable = false;
 
-    /** False when the device has no Persian voice installed — the app then has nothing to speak with. */
+    /**
+     * False when the device has no Persian voice installed. That is no longer something to warn
+     * about: the narration and the words that read a question are recorded, so the engine is only
+     * the last resort for a line whose clip has not arrived yet.
+     */
     public boolean isPersianAvailable() {
         return persianAvailable;
     }

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The only folder shared out of this app: the downloaded printable worksheets.
+
+  «باز کن» hands a PDF to whatever reader the phone has, and since Android 7 a file:// Uri
+  cannot cross to another app — it has to be a content:// Uri from a provider. Nothing else in
+  the app's storage is exposed: not the narration clips, not the child's progress.
+-->
+<paths>
+    <files-path name="sheets" path="sheets/" />
+</paths>
