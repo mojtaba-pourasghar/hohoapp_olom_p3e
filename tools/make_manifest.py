@@ -24,8 +24,24 @@ from pronounce import spoken as _spoken, number_word, HUNDREDS  # noqa: E402
 VOWELS_ON = "--plain" not in sys.argv
 
 
+# «نه» that means «خیر» is recorded as «خیر»: the voice reads a lone «نه» badly, and confuses it
+# with «نُه» (nine). Only the places where it is an answer are changed — «یا نه»، «جوابش نه»، a
+# sentence that is just «نه!» — not «نه … نه …», «نه کج» or a tag question «، نه؟». The text on
+# screen keeps «نه»; only the third column, the one that is recorded, changes.
+NO = "نَ?ه"
+SAY_NO = [
+    (re.compile(r"^" + NO + r"$"), "خیر"),                                   # the answer on its own
+    (re.compile(r"(یا\s+)" + NO + r"(?=\s*(?:[؟?!.،]|$))"), r"\1خیر"),        # «… یا نه»
+    (re.compile(r"(جَ?وابَ?ش\s+)" + NO + r"(?=\s)"), r"\1خیر"),              # «جوابش نه است»
+    (re.compile(r"((?:^|[؟?.!]\s+))" + NO + r"!"), r"\1خیر!"),                # «… ؟ نه!»
+]
+
+
 def spoken(text):
-    return _spoken(text, vowels=VOWELS_ON)
+    said = _spoken(text, vowels=VOWELS_ON)
+    for pattern, answer in SAY_NO:
+        said = pattern.sub(answer, said)
+    return said
 
 
 # Lines whose spoken form was fixed by hand in the voice studio. The manifest is generated, so
