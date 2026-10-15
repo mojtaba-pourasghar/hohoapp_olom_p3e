@@ -12,9 +12,11 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.hoohooolom.app.R;
+import com.hoohooolom.app.data.Access;
 import com.hoohooolom.app.data.AppState;
 import com.hoohooolom.app.data.Book;
 import com.hoohooolom.app.data.Level;
+import com.hoohooolom.app.data.QuizMode;
 import com.hoohooolom.app.ui.BaseFragment;
 import com.hoohooolom.app.ui.UiKit;
 import com.hoohooolom.app.ui.Screen;
@@ -51,15 +53,24 @@ public class WorksheetIndexFragment extends BaseFragment {
 
         ((TextView) view.findViewById(R.id.chapter_title)).setText("درس " + ch.numberFa + ": " + ch.title);
         ((TextView) view.findViewById(R.id.chapter_subtitle))
-            .setText("کاربرگ ۳۰ سؤالی را همین‌جا می‌نویسی؛ کاغذ لازم نیست. هر چهارده درس و هر سه سطح باز است.");
+            .setText(paid()
+                ? "کاربرگ ۳۰ سؤالی را همین‌جا می‌نویسی؛ کاغذ لازم نیست. هر چهارده درس و هر سه سطح باز است."
+                : "کاربرگ ۳۰ سؤالی را همین‌جا می‌نویسی؛ کاغذ لازم نیست. یک کاربرگ رایگان است، بقیه با نسخه‌ی کامل.");
 
         LinearLayout list = view.findViewById(R.id.list_container);
         list.removeAllViews();
         for (Level level : Level.values()) {
             // a half-finished set is picked up where it stopped, so the card says so
             boolean halfDone = s.hasAttempt("WORKSHEET_" + ch.index + "_" + level.index);
-            list.addView(ScreenHelpers.buildLevelCard(requireContext(), level,
-                halfDone ? "کاربرگ نیمه‌کاره — از همان سؤال ادامه می‌دهی" : "۳۰ سؤال · همین‌جا جواب می‌نویسی", () -> {
+            boolean open = paid() || Access.quiz(QuizMode.WORKSHEET, ch.index, level.index);
+            String meta = !open ? "🔒 با نسخه‌ی کامل باز می‌شود"
+                : halfDone ? "کاربرگ نیمه‌کاره — از همان سؤال ادامه می‌دهی"
+                : "۳۰ سؤال · همین‌جا جواب می‌نویسی";
+            list.addView(ScreenHelpers.buildLevelCard(requireContext(), level, meta, () -> {
+                if (!open) {
+                    goPaywall("کاربرگِ «" + level.title + "» درس " + ch.numberFa);
+                    return;
+                }
                 Bundle args = new Bundle();
                 args.putString("mode", "WORKSHEET");
                 args.putInt("chapter", ch.index);

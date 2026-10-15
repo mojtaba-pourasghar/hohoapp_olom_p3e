@@ -20,3 +20,11 @@ __pycache__/
 # developer's own machine; they go to the host over FTP, not into the repo
 /tools/voice-out/
 /tools/karbarg-out/
+/tools/voice-studio/publish-out/
+/tools/voice-studio/exam.json
+
+# the APK signing key never goes in the repo — it lives in a GitHub secret
+/keystore/
+
+# the built APK lives in the release, not in the repo
+/dist/

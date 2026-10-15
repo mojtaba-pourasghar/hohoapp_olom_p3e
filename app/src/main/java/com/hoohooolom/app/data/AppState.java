@@ -347,6 +347,34 @@ public final class AppState {
         mascotY = prefs.getFloat("mascotY", -1f);
     }
 
+    // ── small named values, for things that need remembering but not a field of their own ──
+    // The online exam keeps «did this child sign up», «have they sat it» and «what did they
+    // score» per exam date this way, so a new exam next term needs no migration.
+
+    public boolean getBoolean(String key, boolean fallback) {
+        return prefs.getBoolean("v_" + key, fallback);
+    }
+
+    public void setBoolean(String key, boolean value) {
+        prefs.edit().putBoolean("v_" + key, value).apply();
+    }
+
+    public int getInt(String key, int fallback) {
+        return prefs.getInt("v_" + key, fallback);
+    }
+
+    public void setInt(String key, int value) {
+        prefs.edit().putInt("v_" + key, value).apply();
+    }
+
+    public String getString(String key, String fallback) {
+        return prefs.getString("v_" + key, fallback);
+    }
+
+    public void setString(String key, String value) {
+        prefs.edit().putString("v_" + key, value == null ? "" : value).apply();
+    }
+
     private String historyToJson() {
         JSONArray arr = new JSONArray();
         try {

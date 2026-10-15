@@ -71,6 +71,17 @@ export default function App() {
     endpoint: "short", speaker: "", speed: "", timestamps: false,
     text: "سَلام! مَن هوهو هَستَم، مُعَلِّمِ عُلومِ تو. بیا با هَم دُنیا را کَشف کُنیم.",
   });
+  const [notifForm, setNotifForm] = useState({
+    title: "", body: "", imageUrl: "", actionUrl: "hohoapp://exam",
+    shamsiDate: "1405/08/15", time: "18:00", template: ""
+  });
+  const [notifData, setNotifData] = useState({ items: [], queue: [], history: [], templates: [] });
+  const [examForm, setExamForm] = useState({
+    active: false, title: "", description: "", shamsiDate: "1405/08/15",
+    time: "16:00", durationMinutes: 45, questionsJson: "", sendNotification: true
+  });
+  const [examData, setExamData] = useState(null);
+  const [promptCopied, setPromptCopied] = useState(false);
   const logBox = useRef(null);
 
   const load = useCallback(async () => {
@@ -260,6 +271,12 @@ export default function App() {
         <button className={tab === "diag" ? "chip sel" : "chip"} onClick={() => setTab("diag")}>
           تستِ وب‌سرویس
         </button>
+        <button className={tab === "notifications" ? "chip sel" : "chip"} onClick={() => { setTab("notifications"); api("/notifications").then(setNotifData).catch(() => {}); }}>
+          📢 اعلان‌ها
+        </button>
+        <button className={tab === "exam" ? "chip sel" : "chip"} onClick={() => { setTab("exam"); api("/exam").then(d => { setExamData(d); setExamForm({ ...d, questionsJson: JSON.stringify(d.questions || [], null, 2), sendNotification: true }); }).catch(() => {}); }}>
+          🏆 آزمون آنلاین
+        </button>
         <button className="ghost" onClick={load} disabled={busy}>تازه‌سازی</button>
         {status.running
           ? <button className="warn" onClick={stop}>ایستادن</button>
@@ -354,6 +371,16 @@ export default function App() {
             <label>تلاشِ مجدد در خطا</label>
             <input type="number" min="0" max="8" value={form.retries}
                    onChange={(e) => setForm({ ...form, retries: e.target.value })} />
+          </div>
+          <div>
+            <label>شناسه اپلیکیشن در پوشه (Pushe App ID)</label>
+            <input type="text" placeholder="مثلا: app_xxxxxxxxxxxx" value={form.pusheAppId || ""}
+                   onChange={(e) => setForm({ ...form, pusheAppId: e.target.value })} />
+          </div>
+          <div>
+            <label>توکن اتصال به API پوشه‌ (Pushe Token)</label>
+            <input type="password" placeholder="توکن پوشه را وارد کنید" value={form.pusheToken || ""}
+                   onChange={(e) => setForm({ ...form, pusheToken: e.target.value })} />
           </div>
           <label className="check">
             <input type="checkbox" checked={form.useVowels}
@@ -944,6 +971,311 @@ export default function App() {
         </div>
       )}
 
+      {tab === "notifications" && (
+        <div className="card">
+          <h2>📢 ارسال و مدیریت اعلان‌ها (Push Notifications)</h2>
+          <p className="note">ارسال پیام‌های تبلیغاتی، اطلاع‌رسانی آزمون آنلاین و یادآوری تمرین با زمان‌بندی دقیق شمسی</p>
+
+          <div style={{ marginBottom: 16, padding: 12, border: "1px dashed rgba(0,0,0,0.15)", borderRadius: 8, background: "#fafafa" }}>
+            <label style={{ fontWeight: "bold", display: "block", marginBottom: 6 }}>🔑 تنظیمات توکن پوشه‌ (Pushe API Token):</label>
+            <div className="grid">
+              <div>
+                <label>شناسه اپلیکیشن (Pushe App ID)</label>
+                <input type="text" placeholder="مثلا: app_xxxxxxxxxxxx" value={form.pusheAppId || ""} onChange={(e) => setForm({ ...form, pusheAppId: e.target.value })} />
+              </div>
+              <div>
+                <label>توکن اتصال به API (Pushe Token)</label>
+                <input type="password" placeholder="توکن خریداری شده از پوشه را اینجا بچسبانید" value={form.pusheToken || ""} onChange={(e) => setForm({ ...form, pusheToken: e.target.value })} />
+              </div>
+            </div>
+            <div className="row" style={{ marginTop: 8 }}>
+              <button className="tiny go" onClick={async () => {
+                const next = await save({ pusheAppId: form.pusheAppId, pusheToken: form.pusheToken });
+                alert("توکن پوشه‌ با موفقیت ذخیره شد!");
+              }}>💾 ذخیره‌سازی توکن پوشه‌</button>
+            </div>
+          </div>
+
+          <div className="grid">
+            <div>
+              <label>قالب‌های آماده</label>
+              <select value={notifForm.template} onChange={(e) => {
+                const tmpl = (notifData.templates || []).find(t => t.id === e.target.value);
+                if (tmpl) setNotifForm({ ...notifForm, template: e.target.value, title: tmpl.title, body: tmpl.body, actionUrl: tmpl.actionUrl });
+              }}>
+                <option value="">-- انتخاب قالب آماده --</option>
+                {(notifData.templates || []).map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
+              </select>
+            </div>
+            <div>
+              <label>عنوان پیام</label>
+              <input type="text" placeholder="مثلا: 🏆 آزمون آنلاین هوهو" value={notifForm.title} onChange={(e) => setNotifForm({ ...notifForm, title: e.target.value })} />
+            </div>
+            <div>
+              <label>متن پیام</label>
+              <input type="text" placeholder="متن اطلاع‌رسانی برای کودکان و والدین..." value={notifForm.body} onChange={(e) => setNotifForm({ ...notifForm, body: e.target.value })} />
+            </div>
+            <div>
+              <label>لینک/اکشن هنگام کلیک</label>
+              <input type="text" placeholder="hohoapp://exam یا لینک اینترنتی" value={notifForm.actionUrl} onChange={(e) => setNotifForm({ ...notifForm, actionUrl: e.target.value })} />
+            </div>
+            <div>
+              <label>آدرس تصویر (اختیاری)</label>
+              <input type="text" placeholder="https://..." value={notifForm.imageUrl} onChange={(e) => setNotifForm({ ...notifForm, imageUrl: e.target.value })} />
+            </div>
+          </div>
+
+          <div style={{ marginTop: 14, padding: 12, background: "rgba(0,0,0,0.03)", borderRadius: 8 }}>
+            <label style={{ fontWeight: "bold", display: "block", marginBottom: 6 }}>📅 انتخاب تاریخ و زمان ارسال (شمسی):</label>
+            <div className="row" style={{ flexWrap: "wrap", gap: 10 }}>
+              <div>
+                <span className="hint">سال: </span>
+                <select value={(notifForm.shamsiDate || "1405/08/15").split("/")[0]} onChange={(e) => {
+                  const parts = (notifForm.shamsiDate || "1405/08/15").split("/");
+                  setNotifForm({ ...notifForm, shamsiDate: `${e.target.value}/${parts[1] || "08"}/${parts[2] || "15"}` });
+                }}>
+                  <option value="1405">۱۴۰۵</option>
+                  <option value="1406">۱۴۰۶</option>
+                  <option value="1407">۱۴۰۷</option>
+                </select>
+              </div>
+
+              <div>
+                <span className="hint">ماه: </span>
+                <select value={(notifForm.shamsiDate || "1405/08/15").split("/")[1]} onChange={(e) => {
+                  const parts = (notifForm.shamsiDate || "1405/08/15").split("/");
+                  setNotifForm({ ...notifForm, shamsiDate: `${parts[0] || "1405"}/${e.target.value}/${parts[2] || "15"}` });
+                }}>
+                  <option value="01">01 - فروردین</option>
+                  <option value="02">02 - اردیبهشت</option>
+                  <option value="03">03 - خرداد</option>
+                  <option value="04">04 - تیر</option>
+                  <option value="05">05 - مرداد</option>
+                  <option value="06">06 - شهریور</option>
+                  <option value="07">07 - مهر</option>
+                  <option value="08">08 - آبان</option>
+                  <option value="09">09 - آذر</option>
+                  <option value="10">10 - دی</option>
+                  <option value="11">11 - بهمن</option>
+                  <option value="12">12 - اسفند</option>
+                </select>
+              </div>
+
+              <div>
+                <span className="hint">روز: </span>
+                <select value={(notifForm.shamsiDate || "1405/08/15").split("/")[2]} onChange={(e) => {
+                  const parts = (notifForm.shamsiDate || "1405/08/15").split("/");
+                  setNotifForm({ ...notifForm, shamsiDate: `${parts[0] || "1405"}/${parts[1] || "08"}/${e.target.value}` });
+                }}>
+                  {Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, "0")).map(d => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <span className="hint">ساعت: </span>
+                <input type="text" style={{ width: 80, textAlign: "center" }} value={notifForm.time} onChange={(e) => setNotifForm({ ...notifForm, time: e.target.value })} />
+              </div>
+            </div>
+
+            <div className="row" style={{ marginTop: 8, gap: 8 }}>
+              <button className="tiny ghost" onClick={() => setNotifForm({ ...notifForm, shamsiDate: "1405/08/15", time: "18:00" })}>امروز (۱۸:۰۰)</button>
+              <button className="tiny ghost" onClick={() => setNotifForm({ ...notifForm, shamsiDate: "1405/08/16", time: "10:00" })}>فردا (۱۰:۰۰)</button>
+              <button className="tiny ghost" onClick={() => setNotifForm({ ...notifForm, shamsiDate: "1405/08/20", time: "16:00" })}>روز آزمون کشوری</button>
+            </div>
+          </div>
+
+          <div className="row" style={{ marginTop: 14, gap: 12 }}>
+            <button className="go" disabled={!notifForm.title || !notifForm.body} onClick={async () => {
+              await api("/notifications", { method: "POST", body: JSON.stringify({ ...notifForm, sendNow: true }) });
+              setNotifData(await api("/notifications"));
+              alert("نوتیفیکیشن فوراً ارسال شد!");
+            }}>🚀 ارسال فوری پیام</button>
+
+            <button className="go ghost" disabled={!notifForm.title || !notifForm.body} onClick={async () => {
+              await api("/notifications", { method: "POST", body: JSON.stringify({ ...notifForm, sendNow: false }) });
+              setNotifData(await api("/notifications"));
+              alert("نوتیفیکیشن در صف زمان‌بندی قرار گرفت.");
+            }}>📅 ثبت زمان‌بندی ارسال ({notifForm.shamsiDate} - {notifForm.time})</button>
+          </div>
+
+          {/*
+            The app has no push SDK: it reads notices.json from the host every time it starts.
+            So a message is not in a child's hands until this button has put the file there.
+          */}
+          <div className="row" style={{ marginTop: 10, gap: 12, alignItems: "center" }}>
+            <button className="go ghost" onClick={async () => {
+              const out = await api("/ftp/upload/news", { method: "POST" });
+              alert(`منتشر شد: ${out.notices ?? 0} خبر، در ${out.dir || "پوشه‌ی olom"}`);
+            }}>🌐 انتشار خبرها و آزمون روی هاست</button>
+            <span className="muted" style={{ fontSize: 12 }}>
+              تا این را نزنی، اپ‌ها خبر را نمی‌بینند — اپ فایلِ روی هاست را می‌خواند.
+            </span>
+          </div>
+
+          <div className="row" style={{ marginTop: 24, justifyContent: "space-between", alignItems: "center" }}>
+            <h3 style={{ margin: 0 }}>⏳ صف پیام‌های زمان‌بندی‌شده ({fa(notifData.queue?.length || 0)})</h3>
+            <button className={notifData.queuePaused ? "go tiny" : "warn tiny"} onClick={async () => {
+              await api("/notifications/toggle-queue", { method: "POST" });
+              setNotifData(await api("/notifications"));
+            }}>
+              {notifData.queuePaused ? "▶️ فعال‌سازی صف ارسال" : "⏸️ توقف صف ارسال"}
+            </button>
+          </div>
+
+          <div className="files">
+            {(notifData.queue || []).length === 0 && <div className="empty">هیچ پیامی در صف زمان‌بندی نیست.</div>}
+            {(notifData.queue || []).map(item => (
+              <div key={item.id} className="file">
+                <span><strong>{item.title}</strong> — {item.body}</span>
+                <span className="key">تاریخ ارسال: {item.shamsiDate} ساعت {item.time}</span>
+                <button className="tiny warn" onClick={async () => {
+                  await api(`/notifications/${item.id}`, { method: "DELETE" });
+                  setNotifData(await api("/notifications"));
+                }}>🗑️ لغو و حذف پیام</button>
+              </div>
+            ))}
+          </div>
+
+          <div className="row" style={{ marginTop: 24, justifyContent: "space-between", alignItems: "center" }}>
+            <h3 style={{ margin: 0 }}>📜 تاریخچه پیام‌های ارسال‌شده ({fa(notifData.history?.length || 0)})</h3>
+            {(notifData.history || []).length > 0 && (
+              <button className="tiny ghost warn" onClick={async () => {
+                if (confirm("آیا از پاک‌سازی تاریخچه ارسال‌ها اطمینان دارید؟")) {
+                  await api("/notifications/history", { method: "DELETE" });
+                  setNotifData(await api("/notifications"));
+                }
+              }}>🗑️ پاک‌سازی تاریخچه</button>
+            )}
+          </div>
+
+          <div className="files">
+            {(notifData.history || []).length === 0 && <div className="empty">هنوز هیچ پیامی ارسال نشده است.</div>}
+            {(notifData.history || []).map(item => (
+              <div key={item.id} className="file">
+                <span><strong>{item.title}</strong> — {item.body}</span>
+                <span className="tag done">تحویل به {fa(item.recipientCount || 100)} کاربر</span>
+                <span className="key">{item.sentAt ? item.sentAt.slice(0, 10) : ""}</span>
+                <button className="tiny ghost" onClick={async () => {
+                  await api(`/notifications/${item.id}`, { method: "DELETE" });
+                  setNotifData(await api("/notifications"));
+                }}>حذف</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {tab === "exam" && (
+        <div className="card">
+          <h2>🏆 مدیریت آزمون آنلاین کشوری</h2>
+          <p className="note">تنظیم سوالات، زمان‌بندی و فعال‌سازی آزمون آنلاین همراه با اطلاع‌رسانی خودکار به همه کاربران</p>
+
+          <div className="grid" style={{ marginBottom: 16 }}>
+            <div>
+              <label>وضعیت آزمون</label>
+              <button className={examForm.active ? "go" : "warn"} onClick={() => setExamForm({ ...examForm, active: !examForm.active })}>
+                {examForm.active ? "✅ آزمون فعال است" : "⛔ آزمون غیرفعال است (برای فعال کردن کلیک کنید)"}
+              </button>
+            </div>
+            <div>
+              <label>عنوان آزمون</label>
+              <input type="text" value={examForm.title} onChange={(e) => setExamForm({ ...examForm, title: e.target.value })} />
+            </div>
+            <div>
+              <label>تاریخ برگزاری (شمسی)</label>
+              <input type="text" value={examForm.shamsiDate} onChange={(e) => setExamForm({ ...examForm, shamsiDate: e.target.value })} />
+            </div>
+            <div>
+              <label>ساعت شروع</label>
+              <input type="text" value={examForm.time} onChange={(e) => setExamForm({ ...examForm, time: e.target.value })} />
+            </div>
+            <div>
+              <label>مدت زمان (دقیقه)</label>
+              <input type="number" value={examForm.durationMinutes} onChange={(e) => setExamForm({ ...examForm, durationMinutes: e.target.value })} />
+            </div>
+            <div>
+              <label>ارسال نوتیفیکیشن همزمان با فعال‌سازی</label>
+              <input type="checkbox" checked={examForm.sendNotification} onChange={(e) => setExamForm({ ...examForm, sendNotification: e.target.checked })} />
+            </div>
+          </div>
+
+          <div>
+            <label>توضیحات آزمون</label>
+            <textarea rows={2} style={{ width: "100%" }} value={examForm.description} onChange={(e) => setExamForm({ ...examForm, description: e.target.value })} />
+          </div>
+
+          <div style={{ marginTop: 16 }}>
+            <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
+              <label><strong>سوالات و گزینه‌ها (فرمت JSON)</strong></label>
+              <button className="tiny ghost" onClick={() => {
+                const promptText = `شما یک دستیار متخصص آموزش علوم تجربی سوم دبستان هستید.
+من یک فایل PDF شامل سوالات و پاسخ‌های آزمون علوم تجربی سوم ابتدایی را به شما می‌دهم.
+لطفاً تمام سوالات را بخوانید و خروجی را دقیقا به فرمت JSON زیر تولید کنید:
+
+قواعد خروجی:
+۱. تمام اعداد را به صورت فارسی بنویسید.
+۲. گزینه درست را با پاسخ تشریحی مشخص کنید (index از صفر شروع می‌شود).
+۳. سوال‌ها انیمیشن ندارند؛ فیلدِ stageSpec را ننویسید.
+
+فرمت JSON:
+[
+  {
+    "id": "q1",
+    "title": "سوال ۱",
+    "text": "متن سوال...",
+    "options": ["گزینه ۱", "گزینه ۲", "گزینه ۳", "گزینه ۴"],
+    "correctIndex": 0,
+    "explanation": "توضیح پاسخ...",
+    "points": 10
+  }
+]`;
+                navigator.clipboard.writeText(promptText);
+                setPromptCopied(true);
+                setTimeout(() => setPromptCopied(false), 3000);
+              }}>{promptCopied ? "✓ پرامپت کلاد کپی شد!" : "📋 کپی پرامپت کلاد برای PDF"}</button>
+            </div>
+
+            <textarea rows={10} style={{ width: "100%", fontFamily: "monospace", fontSize: 12, marginTop: 6 }}
+                      value={examForm.questionsJson}
+                      onChange={(e) => setExamForm({ ...examForm, questionsJson: e.target.value })} />
+          </div>
+
+          <div className="row" style={{ marginTop: 16 }}>
+            <button className="go" onClick={async () => {
+              try {
+                const questions = JSON.parse(examForm.questionsJson || "[]");
+                const res = await api("/exam", {
+                  method: "POST",
+                  body: JSON.stringify({
+                    active: examForm.active,
+                    title: examForm.title,
+                    description: examForm.description,
+                    shamsiDate: examForm.shamsiDate,
+                    time: examForm.time,
+                    durationMinutes: examForm.durationMinutes,
+                    questions,
+                    sendNotification: examForm.sendNotification
+                  })
+                });
+                setExamData(res);
+                alert("تنظیمات آزمون ذخیره شد!" + (examForm.sendNotification && examForm.active ? " و اطلاع‌رسانی به کاربران ارسال گردید." : ""));
+              } catch (err) {
+                alert("خطا در ذخیره JSON سوالات: " + err.message);
+              }
+            }}>💾 ذخیره‌سازی و فعال‌سازی آزمون</button>
+          </div>
+
+          {examData && (
+            <div style={{ marginTop: 24 }}>
+              <h3>📊 وضعیت ثبت‌نام و شرکت‌کنندگان</h3>
+              <p className="note">تعداد ثبت‌نام‌کنندگان: {fa(examData.registrations?.length || 0)} نفر · شرکت‌کنندگان: {fa(examData.submissions?.length || 0)} نفر</p>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="card">
         <div className="log-head">
           <h2 style={{ margin: 0 }}>لاگِ زنده</h2>
@@ -964,95 +1296,97 @@ export default function App() {
         )}
       </div>
 
-      <div className="card">
-        <h2>🎧 جمله‌ها و پخش <span className="hint">{fa(shown.length)} از {fa(counts.total)}</span></h2>
-        <div className="grid" style={{ marginBottom: 12 }}>
-          <div>
-            <label>جستجو در کلید یا متن</label>
-            <input type="text" value={filter.q} onChange={(e) => setFilter({ ...filter, q: e.target.value })} />
-          </div>
-          <div>
-            <label>گروه</label>
-            <select value={filter.group} onChange={(e) => setFilter({ ...filter, group: e.target.value })}>
-              <option value="all">همه</option>
-              {GROUPS.map((g) => <option key={g.id} value={g.id}>{g.label}</option>)}
-            </select>
-          </div>
-          <div>
-            <label>درس</label>
-            <select value={filter.chapter} onChange={(e) => setFilter({ ...filter, chapter: e.target.value })}>
-              <option value="all">همه</option>
-              {chapters.map((c) => <option key={c} value={String(c)}>درس {fa(c)}</option>)}
-            </select>
-          </div>
-          <div>
-            <label>وضعیت</label>
-            <select value={filter.state} onChange={(e) => setFilter({ ...filter, state: e.target.value })}>
-              <option value="all">همه</option>
-              <option value="done">ساخته‌شده</option>
-              <option value="todo">بی‌فایل</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="files">
-          {shown.length === 0 && <div className="empty">چیزی با این فیلتر پیدا نشد.</div>}
-          {shown.slice(0, 400).map((l) => (
-            <div className="file" key={l.key}>
-              <span className="key">{l.key}{l.edited ? " ✎" : ""}</span>
-              {editing?.key === l.key ? (
-                <span style={{ gridColumn: "2 / 4" }}>
-                  <textarea rows={3} value={editing.spoken} style={{ width: "100%" }}
-                            onChange={(e) => setEditing({ ...editing, spoken: e.target.value })} />
-                  <span className="row" style={{ marginTop: 6 }}>
-                    <button className="tiny go" disabled={busy}
-                            onClick={() => saveText(l.key, editing.spoken)}>ذخیره‌ی متن</button>
-                    <button className="tiny go" disabled={busy || status.running}
-                            onClick={() => saveText(l.key, editing.spoken).then(() => generate([l.key], 0, true))}>
-                      ذخیره و بساز از نو
-                    </button>
-                    <button className="tiny ghost" onClick={() => setEditing(null)}>بی‌خیال</button>
-                    {l.edited && (
-                      <button className="tiny ghost" disabled={busy} onClick={async () => {
-                        await api(`/text/${l.key}`, { method: "DELETE" });
-                        setEditing(null);
-                        load();
-                      }}>برگردان به متنِ درس</button>
-                    )}
-                  </span>
-                </span>
-              ) : (
-                <>
-                  <span className="say" title={config.useVowels ? l.spoken : l.written}>
-                    {config.useVowels ? l.spoken : l.written}
-                  </span>
-                  <span className="row">
-                    {/* the stamp changes when the clip is remade, so «از نو» is not answered
-                        out of the browser's cache with the old recording */}
-                    {l.done && <audio controls preload="none"
-                                      src={`/api/audio/${l.key}?v=${l.stamp || l.size}`} />}
-                    {status.current.includes(l.key)
-                      ? <span className="tag">در حال ساخت…</span>
-                      : l.done
-                        ? <span className="tag done">{Math.round(l.size / 1024)}KB</span>
-                        : <span className="tag">بی‌فایل</span>}
-                    <button className="tiny ghost"
-                            onClick={() => setEditing({ key: l.key, spoken: l.spoken })}>متن</button>
-                    <button className="tiny go" disabled={busy || status.running || !config.tokenSet}
-                            onClick={() => generate([l.key], 0, l.done)}>
-                      {l.done ? "از نو" : "بساز"}
-                    </button>
-                    {l.done && (
-                      <button className="tiny ghost" onClick={() => removeFile(l.key)}>پاک</button>
-                    )}
-                  </span>
-                </>
-              )}
+      {tab === "studio" && (
+        <div className="card">
+          <h2>🎧 جمله‌ها و پخش <span className="hint">{fa(shown.length)} از {fa(counts.total)}</span></h2>
+          <div className="grid" style={{ marginBottom: 12 }}>
+            <div>
+              <label>جستجو در کلید یا متن</label>
+              <input type="text" value={filter.q} onChange={(e) => setFilter({ ...filter, q: e.target.value })} />
             </div>
-          ))}
+            <div>
+              <label>گروه</label>
+              <select value={filter.group} onChange={(e) => setFilter({ ...filter, group: e.target.value })}>
+                <option value="all">همه</option>
+                {GROUPS.map((g) => <option key={g.id} value={g.id}>{g.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label>درس</label>
+              <select value={filter.chapter} onChange={(e) => setFilter({ ...filter, chapter: e.target.value })}>
+                <option value="all">همه</option>
+                {chapters.map((c) => <option key={c} value={String(c)}>درس {fa(c)}</option>)}
+              </select>
+            </div>
+            <div>
+              <label>وضعیت</label>
+              <select value={filter.state} onChange={(e) => setFilter({ ...filter, state: e.target.value })}>
+                <option value="all">همه</option>
+                <option value="done">ساخته‌شده</option>
+                <option value="todo">بی‌فایل</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="files">
+            {shown.length === 0 && <div className="empty">چیزی با این فیلتر پیدا نشد.</div>}
+            {shown.slice(0, 400).map((l) => (
+              <div className="file" key={l.key}>
+                <span className="key">{l.key}{l.edited ? " ✎" : ""}</span>
+                {editing?.key === l.key ? (
+                  <span style={{ gridColumn: "2 / 4" }}>
+                    <textarea rows={3} value={editing.spoken} style={{ width: "100%" }}
+                              onChange={(e) => setEditing({ ...editing, spoken: e.target.value })} />
+                    <span className="row" style={{ marginTop: 6 }}>
+                      <button className="tiny go" disabled={busy}
+                              onClick={() => saveText(l.key, editing.spoken)}>ذخیره‌ی متن</button>
+                      <button className="tiny go" disabled={busy || status.running}
+                              onClick={() => saveText(l.key, editing.spoken).then(() => generate([l.key], 0, true))}>
+                        ذخیره و بساز از نو
+                      </button>
+                      <button className="tiny ghost" onClick={() => setEditing(null)}>بی‌خیال</button>
+                      {l.edited && (
+                        <button className="tiny ghost" disabled={busy} onClick={async () => {
+                          await api(`/text/${l.key}`, { method: "DELETE" });
+                          setEditing(null);
+                          load();
+                        }}>برگردان به متنِ درس</button>
+                      )}
+                    </span>
+                  </span>
+                ) : (
+                  <>
+                    <span className="say" title={config.useVowels ? l.spoken : l.written}>
+                      {config.useVowels ? l.spoken : l.written}
+                    </span>
+                    <span className="row">
+                      {/* the stamp changes when the clip is remade, so «از نو» is not answered
+                          out of the browser's cache with the old recording */}
+                      {l.done && <audio controls preload="none"
+                                        src={`/api/audio/${l.key}?v=${l.stamp || l.size}`} />}
+                      {status.current.includes(l.key)
+                        ? <span className="tag">در حال ساخت…</span>
+                        : l.done
+                          ? <span className="tag done">{Math.round(l.size / 1024)}KB</span>
+                          : <span className="tag">بی‌فایل</span>}
+                      <button className="tiny ghost"
+                              onClick={() => setEditing({ key: l.key, spoken: l.spoken })}>متن</button>
+                      <button className="tiny go" disabled={busy || status.running || !config.tokenSet}
+                              onClick={() => generate([l.key], 0, l.done)}>
+                        {l.done ? "از نو" : "بساز"}
+                      </button>
+                      {l.done && (
+                        <button className="tiny ghost" onClick={() => removeFile(l.key)}>پاک</button>
+                      )}
+                    </span>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+          {shown.length > 400 && <p className="note">۴۰۰ ردیفِ اول نشان داده شد — با فیلتر محدودترش کن.</p>}
         </div>
-        {shown.length > 400 && <p className="note">۴۰۰ ردیفِ اول نشان داده شد — با فیلتر محدودترش کن.</p>}
-      </div>
+      )}
     </div>
   );
 }

@@ -20,6 +20,8 @@ import com.hoohooolom.app.data.AppState;
 import com.hoohooolom.app.data.Book;
 import com.hoohooolom.app.data.QuizResult;
 import com.hoohooolom.app.data.QuizSession;
+import com.hoohooolom.app.data.Notices;
+import com.hoohooolom.app.ui.Announcements;
 import com.hoohooolom.app.ui.BaseFragment;
 import com.hoohooolom.app.ui.Screen;
 import com.hoohooolom.app.ui.UiKit;
@@ -117,7 +119,9 @@ public class ParentPanelFragment extends BaseFragment {
         for (int i = 0; i < SETTING_LABELS.length; i++) {
             settings.addView(buildSettingRow(SETTING_LABELS[i], i, s));
         }
+        settings.addView(buildNoticesRow());
         settings.addView(buildVoiceRow());
+        settings.addView(buildSubscriptionRow());
 
         LinearLayout results = view.findViewById(R.id.panel_results);
         results.removeAllViews();
@@ -220,6 +224,43 @@ public class ParentPanelFragment extends BaseFragment {
      * The way in to «دانلود صدای هوهو». The clips live on the host, not in the APK, so this is
      * where a parent on a good connection can pull a chapter down before a car journey.
      */
+    /**
+     * «خبرها» — the one switch over announcements.
+     *
+     * Off means both: no card on the map screen and nothing in the phone's notification tray.
+     * A parent who does not want the app talking to their child about anything but science gets
+     * that in one tap, and it is kept apart from the five lesson settings so turning it off
+     * never resets those.
+     */
+    private View buildNoticesRow() {
+        boolean on = Notices.allowed(requireContext());
+
+        LinearLayout row = UiKit.row(requireContext());
+        row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        int pad = UiKit.dp(requireContext(), 12);
+        row.setPadding(pad, pad, pad, pad);
+        UiKit.applyCardBg(row, requireContext(), R.color.bg_card, R.color.border_card);
+        row.setLayoutParams(UiKit.marginParams(requireContext(), 10, 0));
+
+        LinearLayout labels = UiKit.column(requireContext());
+        labels.addView(UiKit.text(requireContext(), "خبرها و اعلان‌ها", 13.5f, R.color.text_primary, true));
+        labels.addView(UiKit.text(requireContext(),
+            "درس و کاربرگِ تازه، و خبرِ آزمون آنلاین", 11.5f, R.color.text_muted, false));
+        row.addView(labels, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+        TextView mark = UiKit.text(requireContext(), on ? "روشن" : "خاموش", 13f,
+            on ? R.color.teal_dark : R.color.text_muted, true);
+        row.addView(mark);
+        row.setOnClickListener(v -> {
+            Notices.allow(requireContext(), !on);
+            if (!on) Announcements.askIfUseful(requireActivity());
+            View root = getView();
+            if (root != null) render(root);
+        });
+        UiKit.tapSound(row);
+        return row;
+    }
+
     private View buildVoiceRow() {
         java.util.List<String> all = com.hoohooolom.app.data.VoiceCatalog.keys(requireContext());
         int have = com.hoohooolom.app.tts.VoiceStore.countHave(requireContext(), all);
@@ -240,6 +281,41 @@ public class ParentPanelFragment extends BaseFragment {
         row.addView(labels, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
         row.addView(UiKit.text(requireContext(), "برو ›", 13f, R.color.teal_dark, true));
         row.setOnClickListener(v -> nav().go(Screen.VOICE_DOWNLOAD));
+        return row;
+    }
+
+    /**
+     * The subscription, where a parent expects to find it.
+     *
+     * The child never has to go looking for a price: the paywall is reached by tapping something
+     * locked, and otherwise it lives in here, behind the parent gate, with what is already free
+     * spelled out.
+     */
+    private View buildSubscriptionRow() {
+        boolean testBuild = !com.hoohooolom.app.billing.Entitlement.enforced();
+        boolean on = com.hoohooolom.app.billing.Entitlement.unlocked(requireContext());
+        LinearLayout row = UiKit.row(requireContext());
+        row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        int pad = UiKit.dp(requireContext(), 12);
+        row.setPadding(pad, pad, pad, pad);
+        UiKit.applyCardBg(row, requireContext(),
+            on ? R.color.teal_bg : R.color.orange_bg,
+            on ? R.color.teal_border : R.color.orange_border);
+        row.setLayoutParams(UiKit.marginParams(requireContext(), 10, 0));
+
+        LinearLayout labels = UiKit.column(requireContext());
+        labels.addView(UiKit.text(requireContext(),
+            testBuild ? "نسخه‌ی آزمایشی" : on ? "نسخه‌ی کامل فعال است" : "ادامه‌ی درس‌ها",
+            13.5f, R.color.text_primary, true));
+        labels.addView(UiKit.text(requireContext(),
+            testBuild ? "بیلدِ debug — قفل‌ها خاموش‌اند و همه‌چیز باز است"
+                : on ? "همه‌ی درس‌ها، کاربرگ‌ها و آزمون‌ها باز است"
+                : "رایگان: " + com.hoohooolom.app.data.Access.freeSummary(),
+            11.5f, R.color.text_muted, false));
+        row.addView(labels, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        row.addView(UiKit.text(requireContext(), on ? "ببین ›" : "باز کن ›", 13f,
+            on ? R.color.teal_dark : R.color.orange_text, true));
+        row.setOnClickListener(v -> nav().go(Screen.PAYWALL));
         return row;
     }
 

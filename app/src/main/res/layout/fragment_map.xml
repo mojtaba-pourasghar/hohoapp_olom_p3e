@@ -63,6 +63,19 @@
                 android:orientation="horizontal" />
         </HorizontalScrollView>
 
+        <!--
+          خبرها. Empty and invisible unless the host has something to say, so the screen looks
+          exactly as it did before on the ordinary day when there is no news.
+        -->
+        <LinearLayout
+            android:id="@+id/map_notices"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="12dp"
+            android:visibility="gone" />
+
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

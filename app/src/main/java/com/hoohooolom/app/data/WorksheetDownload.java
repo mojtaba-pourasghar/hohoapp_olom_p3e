@@ -29,7 +29,7 @@ import java.util.List;
  *
  *   { "baseUrl": "http://…/karbarg/",
  *     "sheets": [ { "title": "کاربرگ جمع و تفریق", "chapter": 5, "note": "۲ صفحه",
- *                   "file": "jam-tafrigh/sheet.pdf" } ] }
+ *                   "file": "jam-tafrigh/sheet.pdf", "free": true } ] }
  *
  * An older flat array of objects carrying a whole «url» each still reads, so nothing breaks if
  * the file is written by hand.
@@ -41,7 +41,7 @@ import java.util.List;
  * the cached copy and is refreshed in the background whenever there is a connection. A copy also
  * ships in assets, so the very first launch has something to show.
  */
-public final class WorksheetDownload {
+public final class WorksheetDownload implements Access.Sheet {
 
     /** Where the sheets and their index live. */
     public static final String BASE_URL = "http://mp-apdl.ir/grade-3/olom/karbarg/";
@@ -57,11 +57,30 @@ public final class WorksheetDownload {
     public final String url;
     public final int chapter; // -1 when the sheet is not tied to one chapter
 
-    public WorksheetDownload(String title, String note, String url, int chapter) {
+    /**
+     * Free without the subscription, by the catalogue's own say-so («"free": true»).
+     *
+     * It lives in the catalogue rather than in the app so the teacher can change which sheets
+     * are the free ones from the studio, without a new APK going out for it.
+     */
+    public final boolean free;
+
+    public WorksheetDownload(String title, String note, String url, int chapter, boolean free) {
         this.title = title;
         this.note = note;
         this.url = url;
         this.chapter = chapter;
+        this.free = free;
+    }
+
+    @Override
+    public String id() {
+        return url;
+    }
+
+    @Override
+    public boolean marked() {
+        return free;
     }
 
     public static boolean hasRemoteCatalogue() {
@@ -98,13 +117,28 @@ public final class WorksheetDownload {
         }, "worksheet-index").start();
     }
 
-    /** The sheets that belong to one chapter, plus the ones that belong to no chapter. */
+    /**
+     * The sheets of one chapter — and with -1, the ones that belong to no chapter at all.
+     *
+     * The chapter-less ones used to be stuck onto the end of every chapter's list, which put the
+     * same sheet in eight places. They have their own «متفرقه» tab now, so each sheet appears
+     * once, where it belongs.
+     */
     public static List<WorksheetDownload> forChapter(Context context, int chapter) {
         List<WorksheetDownload> out = new ArrayList<>();
         for (WorksheetDownload sheet : bundled(context)) {
-            if (sheet.chapter == chapter || sheet.chapter < 0) out.add(sheet);
+            boolean match = chapter < 0 ? sheet.chapter < 0 : sheet.chapter == chapter;
+            if (match) out.add(sheet);
         }
         return out;
+    }
+
+    /** Whether any sheet belongs to no chapter, so the «متفرقه» tab is worth showing. */
+    public static boolean hasLooseSheets(Context context) {
+        for (WorksheetDownload sheet : bundled(context)) {
+            if (sheet.chapter < 0) return true;
+        }
+        return false;
     }
 
     static List<WorksheetDownload> parse(String json) {
@@ -134,7 +168,8 @@ public final class WorksheetDownload {
                 }
                 if (title.isEmpty() || url.isEmpty()) continue;
                 out.add(new WorksheetDownload(title, o.optString("note", "").trim(), url,
-                    o.has("chapter") ? o.optInt("chapter", -1) : -1));
+                    o.has("chapter") ? o.optInt("chapter", -1) : -1,
+                    o.optBoolean("free", false)));
             }
         } catch (Exception ignored) {
             // a malformed catalogue must not take the screen down; it just shows nothing

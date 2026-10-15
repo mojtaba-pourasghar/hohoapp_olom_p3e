@@ -10,10 +10,12 @@ public enum Screen {
     WORKSHEET_DOWNLOAD,
     VOICE_DOWNLOAD,
     EXAM_INDEX,
+    ONLINE_EXAM,
     QUIZ,
     RESULT,
     REWARDS,
     PROFILE,
     PARENT_GATE,
-    PARENT_PANEL
+    PARENT_PANEL,
+    PAYWALL
 }

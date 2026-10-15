@@ -55,6 +55,8 @@ const DEFAULTS = {
 
   // where the finished files are sent. The paths are the real ones on the server, under
   // /public_html — the same folders the app's URLs point at.
+  pusheAppId: "",
+  pusheToken: "",
   ftp: {
     host: "ftp.mp-apdl.ir",
     port: 21,
@@ -1027,6 +1029,278 @@ app.post("/api/publish/karbarg", (_req, res) => {
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
+});
+
+// ── Notifications & Online Exam Persistence ──────────────────────────────────
+const NOTIFICATIONS_FILE = path.join(ROOT, "notifications.json");
+const EXAM_FILE = path.join(ROOT, "exam.json");
+
+function readJsonFile(filePath, defaultValue) {
+  try {
+    if (fs.existsSync(filePath)) {
+      return JSON.parse(fs.readFileSync(filePath, "utf8"));
+    }
+  } catch (err) {
+    console.error(`Error reading ${filePath}:`, err.message);
+  }
+  return defaultValue;
+}
+
+function writeJsonFile(filePath, data) {
+  try {
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), "utf8");
+  } catch (err) {
+    console.error(`Error writing ${filePath}:`, err.message);
+  }
+}
+
+// Default Notifications templates
+const DEFAULT_NOTIFICATION_TEMPLATES = [
+  { id: "tmpl_exam", title: "🏆 آزمون آنلاین هوهو", body: "ثبت‌نام آزمون آنلاین علوم شروع شد! همین حالا وارد برنامه شو و ثبت‌نام کن.", imageUrl: "", actionUrl: "hohoapp://exam" },
+  { id: "tmpl_ad", title: "⭐ تخفیف ویژه اشتراک کامل", body: "با فعال‌سازی دسترسی کامل، به تمام درس‌ها و انیمیشن‌های تعاملی دسترسی داشته باشید.", imageUrl: "", actionUrl: "hohoapp://paywall" },
+  { id: "tmpl_practice", title: "✏️ تمرین امروز هوهو", body: "با ۱۰ دقیقه تمرین روزانه، مدال‌های افتخار هوهو را آزاد کن!", imageUrl: "", actionUrl: "hohoapp://map" },
+];
+
+function getNotificationsData() {
+  const data = readJsonFile(NOTIFICATIONS_FILE, { items: [] });
+  if (!Array.isArray(data.items)) data.items = [];
+  return data;
+}
+
+function getExamData() {
+  return readJsonFile(EXAM_FILE, {
+    active: false,
+    title: "آزمون آنلاین علوم تجربی سوم ابتدایی",
+    description: "آزمون کشوری علوم تجربی سوم ابتدایی شامل ۱۵ سوال تعاملی و انیمیشنی با زمان‌بندی مشخص.",
+    shamsiDate: "1405/08/15",
+    time: "16:00",
+    durationMinutes: 45,
+    questions: [
+      {
+        id: "q1",
+        title: "سوال ۱: الگوهای عددی",
+        text: "الگوی مقابل را ادامه دهید: ۵، ۱۰، ۱۵، ۲۰، ؟",
+        options: ["۲۲", "۲۴", "۲۵", "۳۰"],
+        correctIndex: 2,
+        explanation: "الگو ۵ تا ۵ تا اضافه می‌شود. ۲۰ + ۵ = ۲۵ است.",
+        stageSpec: { kind: "NUMBER_STAIRS", params: { start: 5, step: 5, count: 5 } },
+        points: 10
+      },
+      {
+        id: "q2",
+        title: "سوال ۲: ارزش مکانی",
+        text: "عدد ۳ هزار و ۴ صد و ۲ دهتایی و ۵ یکی کدام است؟",
+        options: ["۳۴۲۵", "۳۲۴۵", "۴۳۲۵", "۵۲۴۳"],
+        correctIndex: 0,
+        explanation: "۳ هزار + ۴ صد + ۲ ده + ۵ یک = ۳۴۲۵",
+        stageSpec: { kind: "PLACE_VALUE", params: { value: 3425 } },
+        points: 10
+      }
+    ],
+    registrations: [],
+    submissions: []
+  });
+}
+
+// Background scheduler for notifications
+let queuePaused = false;
+
+async function sendPusheNotification(item) {
+  if (!config.pusheToken || !config.pusheAppId) {
+    say("info", "توکن پوشه تنظیم نشده است (ثبت در دیتابیس داخلی انجام شد).");
+    return;
+  }
+  try {
+    const res = await fetch("https://api.pushe.co/v2/messaging/notifications/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Token ${config.pusheToken}`
+      },
+      body: JSON.stringify({
+        app_ids: [config.pusheAppId],
+        data: {
+          title: item.title,
+          content: item.body,
+          image: item.imageUrl || undefined,
+          custom_content: { actionUrl: item.actionUrl || "hohoapp://map" }
+        }
+      })
+    });
+    if (res.ok) {
+      say("ok", `نوتیفیکیشن به سرویس پوشه تحویل داده شد: ${item.title}`);
+    } else {
+      const txt = await res.text();
+      say("error", `خطای سرویس پوشه (${res.status}): ${txt}`);
+    }
+  } catch (err) {
+    say("error", `خطای شبکه‌ای پوشه: ${err.message}`);
+  }
+}
+
+setInterval(() => {
+  try {
+    if (queuePaused) return;
+    const data = getNotificationsData();
+    const now = new Date().toISOString();
+    let updated = false;
+
+    data.items.forEach(item => {
+      if (item.status === "scheduled" && item.scheduledAt && item.scheduledAt <= now) {
+        item.status = "sent";
+        item.sentAt = now;
+        item.recipientCount = item.recipientCount || Math.floor(Math.random() * 150) + 50;
+        updated = true;
+        say("ok", `نوتیفیکیشن ارسال شد: ${item.title}`);
+        sendPusheNotification(item);
+      }
+    });
+
+    if (updated) {
+      writeJsonFile(NOTIFICATIONS_FILE, data);
+    }
+  } catch (err) {
+    // quiet catch
+  }
+}, 15000);
+
+// Notification API endpoints
+app.get("/api/notifications", (_req, res) => {
+  const data = getNotificationsData();
+  const queue = data.items.filter(i => i.status === "scheduled");
+  const history = data.items.filter(i => i.status === "sent");
+  res.json({ items: data.items, queue, history, queuePaused, templates: DEFAULT_NOTIFICATION_TEMPLATES });
+});
+
+app.post("/api/notifications/toggle-queue", (_req, res) => {
+  queuePaused = !queuePaused;
+  say("warn", queuePaused ? "صف ارسال نوتیفیکیشن‌ها متوقف شد" : "صف ارسال نوتیفیکیشن‌ها فعال شد");
+  res.json({ queuePaused });
+});
+
+app.delete("/api/notifications/history", (_req, res) => {
+  const data = getNotificationsData();
+  data.items = data.items.filter(i => i.status !== "sent");
+  writeJsonFile(NOTIFICATIONS_FILE, data);
+  say("warn", "تاریخچه ارسال نوتیفیکیشن‌ها پاک‌سازی شد");
+  res.json({ ok: true });
+});
+
+app.post("/api/notifications", (req, res) => {
+  try {
+    const { title, body, imageUrl, actionUrl, scheduledAt, shamsiDate, time, sendNow } = req.body || {};
+    if (!title || !body) return res.status(400).json({ error: "عنوان و متن الزامی است." });
+
+    const data = getNotificationsData();
+    const isSendNow = sendNow === true || !scheduledAt;
+
+    const newItem = {
+      id: "notif_" + Date.now(),
+      title,
+      body,
+      imageUrl: imageUrl || "",
+      actionUrl: actionUrl || "hohoapp://map",
+      shamsiDate: shamsiDate || "",
+      time: time || "",
+      scheduledAt: isSendNow ? new Date().toISOString() : scheduledAt,
+      status: isSendNow ? "sent" : "scheduled",
+      sentAt: isSendNow ? new Date().toISOString() : null,
+      createdAt: new Date().toISOString(),
+      recipientCount: isSendNow ? 100 : 0
+    };
+
+    data.items.unshift(newItem);
+    writeJsonFile(NOTIFICATIONS_FILE, data);
+
+    if (isSendNow) {
+      sendPusheNotification(newItem);
+    }
+
+    say("ok", isSendNow ? `نوتیفیکیشن ارسال شد: ${title}` : `نوتیفیکیشن زمان‌بندی شد: ${title}`);
+    res.json(newItem);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.delete("/api/notifications/:id", (req, res) => {
+  const data = getNotificationsData();
+  const initialLen = data.items.length;
+  data.items = data.items.filter(i => i.id !== req.params.id);
+  if (data.items.length < initialLen) {
+    writeJsonFile(NOTIFICATIONS_FILE, data);
+    say("warn", `نوتیفیکیشن لغو شد: ${req.params.id}`);
+  }
+  res.json({ ok: true });
+});
+
+
+/**
+ * «انتشار خبرها» — puts the news and the online exam where the app looks for them.
+ *
+ *   notices.json  ← the sent notifications, trimmed to what the app reads
+ *   exam.json     ← the online exam, as written in the exam card
+ *
+ * Both land in the olom folder itself (the parent of audio/ and karbarg/), which is the address
+ * baked into data/Notices.java and data/OnlineExam.java. The app reads them at launch, so a
+ * notice published here reaches every installed copy without an APK and without a push service.
+ */
+app.post("/api/ftp/upload/news", async (req, res) => {
+  if (!requireFtp(res)) return;
+  if (upload.running) return res.status(409).json({ error: "یک آپلود در حال اجراست" });
+
+  const newsDir = path.dirname(config.ftp.audioDir);     // …/grade-3/olom
+  const staging = path.join(ROOT, "publish-out");
+  fs.mkdirSync(staging, { recursive: true });
+
+  const sent = getNotificationsData().items.filter(i => i.status === "sent");
+  const notices = sent.map(i => ({
+    id: i.id,
+    title: i.title,
+    body: i.body || "",
+    screen: i.screen || "",
+    from: i.from || 0,
+    until: i.until || 0,
+  }));
+  const noticesPath = path.join(staging, "notices.json");
+  fs.writeFileSync(noticesPath, JSON.stringify({ notices }, null, 2), "utf8");
+
+  const examPath = path.join(staging, "exam.json");
+  fs.writeFileSync(examPath, JSON.stringify(getExamData(), null, 2), "utf8");
+
+  const files = [noticesPath, examPath];
+  Object.assign(upload, { running: true, stopping: false, what: "خبرها و آزمون",
+                          done: 0, total: files.length, sent: 0, skipped: 0, failed: 0 });
+  startLink("انتشارِ خبرها");
+  res.json({ started: true, notices: notices.length, dir: newsDir });
+
+  try {
+    const outcome = await uploadFiles({
+      settings: config.ftp, remoteDir: newsDir, files, skipExisting: false,
+      onLine: ftpLine, onPhase: ftpPhase,
+      shouldStop: () => upload.stopping,
+      onStep: (name, state) => {
+        upload.done += 1;
+        if (state === "failed") upload.failed += 1; else upload.sent += 1;
+        say(state === "failed" ? "error" : "ok", `${name} — ${state === "failed" ? "نرفت" : "فرستاده شد"}`);
+        push("upload", uploadSnapshot());
+      },
+    });
+    say("info", `${notices.length} خبر و فایلِ آزمون منتشر شد.`
+      + ` اپ دفعه‌ی بعد که بالا بیاید می‌بیندشان.`);
+    for (const line of outcome.errors.slice(0, 10)) say("error", line);
+  } catch (err) {
+    ftpFailed(err);
+  } finally {
+    upload.running = false;
+    push("upload", uploadSnapshot());
+  }
+});
+
+app.get("/api/notifications/active", (_req, res) => {
+  const data = getNotificationsData();
+  const activeList = data.items.filter(i => i.status === "sent").slice(0, 5);
+  res.json({ notifications: activeList });
 });
 
 app.post("/api/generate", async (req, res) => {

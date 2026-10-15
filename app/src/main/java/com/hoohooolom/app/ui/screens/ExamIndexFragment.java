@@ -10,13 +10,17 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 
 import com.hoohooolom.app.R;
+import com.hoohooolom.app.data.Access;
 import com.hoohooolom.app.data.AppState;
 import com.hoohooolom.app.data.Book;
 import com.hoohooolom.app.data.Level;
+import com.hoohooolom.app.data.QuizMode;
 import com.hoohooolom.app.ui.BaseFragment;
 import com.hoohooolom.app.ui.Screen;
+import com.hoohooolom.app.ui.UiKit;
 
 public class ExamIndexFragment extends BaseFragment {
     private int currentChapter;
@@ -50,15 +54,33 @@ public class ExamIndexFragment extends BaseFragment {
 
         ((TextView) view.findViewById(R.id.chapter_title)).setText("درس " + ch.numberFa + ": " + ch.title);
         ((TextView) view.findViewById(R.id.chapter_subtitle))
-            .setText("آزمون از همه‌ی بخش‌های این درس است؛ مثل امتحان مدرسه. هر چهارده درس و هر سه سطح باز است.");
+            .setText(paid()
+                ? "آزمون از همه‌ی بخش‌های این درس است؛ مثل امتحان مدرسه. هر چهارده درس و هر سه سطح باز است."
+                : "آزمون از همه‌ی بخش‌های این درس است؛ مثل امتحان مدرسه. یک آزمون رایگان است، بقیه با نسخه‌ی کامل.");
 
         LinearLayout list = view.findViewById(R.id.list_container);
         list.removeAllViews();
+
+        // The fourth argument is a colour *resource*, not a resolved colour: handing it
+        // getColor(...) makes ContextCompat look up 0xFFFFFFFF as an id and throw.
+        TextView online = UiKit.primaryButton(requireContext(), "🏆 آزمون آنلاین کشوری",
+            ContextCompat.getColor(requireContext(), R.color.orange), R.color.white);
+        online.setLayoutParams(UiKit.marginParams(requireContext(), 0, 12));
+        online.setOnClickListener(v -> nav().go(Screen.ONLINE_EXAM));
+        UiKit.tapSound(online);
+        list.addView(online);
         for (Level level : Level.values()) {
             // a half-finished set is picked up where it stopped, so the card says so
             boolean halfDone = s.hasAttempt("EXAM_" + ch.index + "_" + level.index);
-            list.addView(ScreenHelpers.buildLevelCard(requireContext(), level,
-                halfDone ? "آزمون نیمه‌کاره — از همان سؤال ادامه می‌دهی" : "۱۵ سؤال چندگزینه‌ای · از همه‌ی بخش‌های درس", () -> {
+            boolean open = paid() || Access.quiz(QuizMode.EXAM, ch.index, level.index);
+            String meta = !open ? "🔒 با نسخه‌ی کامل باز می‌شود"
+                : halfDone ? "آزمون نیمه‌کاره — از همان سؤال ادامه می‌دهی"
+                : "۱۵ سؤال چندگزینه‌ای · از همه‌ی بخش‌های درس";
+            list.addView(ScreenHelpers.buildLevelCard(requireContext(), level, meta, () -> {
+                if (!open) {
+                    goPaywall("آزمونِ «" + level.title + "» درس " + ch.numberFa);
+                    return;
+                }
                 Bundle args = new Bundle();
                 args.putString("mode", "EXAM");
                 args.putInt("chapter", ch.index);

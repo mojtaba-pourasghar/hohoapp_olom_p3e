@@ -22,6 +22,16 @@ final class ScreenHelpers {
     private ScreenHelpers() {}
 
     static HorizontalScrollView buildChapterChipRow(Context c, AppState s, int selected, IntConsumer onPick) {
+        return buildChapterChipRow(c, s, selected, onPick, null);
+    }
+
+    /**
+     * The row of chapter chips, with one extra chip at the end when `extra` is given — it is
+     * picked as chapter -1. The printable worksheets use it for «متفرقه», the sheets that belong
+     * to no single chapter.
+     */
+    static HorizontalScrollView buildChapterChipRow(Context c, AppState s, int selected,
+                                                    IntConsumer onPick, String extra) {
         HorizontalScrollView scroll = new HorizontalScrollView(c);
         scroll.setHorizontalScrollBarEnabled(false);
         LinearLayout row = UiKit.row(c);
@@ -40,6 +50,19 @@ final class ScreenHelpers {
             lp.setMarginEnd(UiKit.dp(c, 6));
             chip.setLayoutParams(lp);
             chip.setOnClickListener(v -> onPick.accept(ch.index));
+            row.addView(chip);
+        }
+        if (extra != null) {
+            boolean sel = selected < 0;
+            TextView chip = UiKit.chip(c, extra,
+                sel ? ContextCompat.getColor(c, R.color.orange_bg) : Color.WHITE,
+                ContextCompat.getColor(c, sel ? R.color.orange : R.color.border_card),
+                ContextCompat.getColor(c, sel ? R.color.orange_text : R.color.text_primary));
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            lp.setMarginEnd(UiKit.dp(c, 6));
+            chip.setLayoutParams(lp);
+            chip.setOnClickListener(v -> onPick.accept(-1));
             row.addView(chip);
         }
         scroll.addView(row);

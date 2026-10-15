@@ -13,6 +13,51 @@ android {
     namespace 'com.hoohooolom.app'
     compileSdk 34
 
+    // One key for every build, or the app cannot be updated.
+    //
+    // Each CI run used to make its own throwaway debug key, so every APK was signed by a
+    // different hand and Android refused to install one over the last: «نصب نشد» on any phone
+    // that already had the app, with no way out but uninstalling and losing the child's
+    // progress. Three releases went out with three different certificates before it showed up.
+    //
+    // The key itself is never in the repo. It arrives from the environment — the workflow
+    // writes it from a GitHub secret — and when it is absent the build falls back to the debug
+    // key and says so, loudly, so an unsignable build is never mistaken for a publishable one.
+    def keystoreFile = System.getenv('HOOHOO_KEYSTORE')
+    def keystorePassword = System.getenv('HOOHOO_KEYSTORE_PASSWORD')
+    def keyAliasName = System.getenv('HOOHOO_KEY_ALIAS') ?: 'hoohoo'
+    def keystoreReady = keystoreFile && keystorePassword && file(keystoreFile).exists()
+
+    if (!keystoreReady) {
+        logger.warn("")
+        logger.warn("  ⚠  هیچ کلیدِ ثابتی داده نشده — این APK با کلیدِ موقتِ debug امضا می‌شود")
+        logger.warn("     و روی گوشی‌ای که نسخه‌ی قبلی را دارد نصب نمی‌شود.")
+        logger.warn("     رازِ HOOHOO_KEYSTORE_B64 را در Settings → Secrets بگذار.")
+        logger.warn("")
+    }
+
+    signingConfigs {
+        hoohoo {
+            if (keystoreReady) {
+                storeFile file(keystoreFile)
+                storeType 'PKCS12'
+                storePassword keystorePassword
+                keyAlias keyAliasName
+                keyPassword System.getenv('HOOHOO_KEY_PASSWORD') ?: keystorePassword
+                enableV1Signing true   // some sideloading tools still look for the old signature
+                enableV2Signing true
+            }
+        }
+    }
+
+    // AGP 8 builds no AIDL unless asked. The store's billing interface is an .aidl file, so
+    // without this the generated IInAppBillingService simply does not exist and nothing compiles.
+    // buildConfig likewise: without it there is no BuildConfig.ENFORCE_LOCKS to read.
+    buildFeatures {
+        aidl true
+        buildConfig true
+    }
+
     defaultConfig {
         applicationId "com.hoohooolom.app"
         minSdk 26
@@ -21,10 +66,29 @@ android {
         versionName appVersionName
     }
 
+    // What is locked, and when.
+    //
+    // A debug build opens everything: developing or testing a chapter should not mean buying it
+    // again on every phone, and the lock is not what is being tested. A release build enforces
+    // it. That line is the only difference between the two — the rules themselves live in
+    // data/Access.java either way.
+    //
+    // Which makes the build type load-bearing: whatever ships to کافه‌بازار must be the release
+    // build, and the workflow builds assembleRelease for exactly that reason.
     buildTypes {
+        debug {
+            buildConfigField "boolean", "ENFORCE_LOCKS", "false"
+            if (keystoreReady) signingConfig signingConfigs.hoohoo
+        }
         release {
+            buildConfigField "boolean", "ENFORCE_LOCKS", "true"
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // Unlike debug, a release build is not signed with anything by default — it would
+            // come out as app-release-unsigned.apk and install nowhere. So when the real key is
+            // not around, it falls back to the debug one: still the wrong key for an update,
+            // but an APK someone can actually install, and the build already says so loudly.
+            signingConfig keystoreReady ? signingConfigs.hoohoo : signingConfigs.debug
         }
     }
 

@@ -19,10 +19,13 @@ import com.hoohooolom.app.data.AppState;
 import com.hoohooolom.app.data.Book;
 import com.hoohooolom.app.data.Lessons;
 import com.hoohooolom.app.data.PageLessons;
+import com.hoohooolom.app.data.Notices;
 import com.hoohooolom.app.ui.BaseFragment;
 import com.hoohooolom.app.ui.PathMapView;
 import com.hoohooolom.app.ui.Screen;
 import com.hoohooolom.app.ui.UiKit;
+
+import java.util.List;
 
 import static com.hoohooolom.app.data.PersianDigits.fa;
 
@@ -53,7 +56,66 @@ public class MapFragment extends BaseFragment {
         view.findViewById(R.id.btn_parent).setOnClickListener(v -> nav().goParent());
         view.findViewById(R.id.see_chapters).setOnClickListener(v -> nav().go(Screen.CHAPTERS));
 
+        renderNotices(view);
         render(view, state().mapChapter());
+    }
+
+    /**
+     * خبرها, at the top of the first screen the child sees.
+     *
+     * One card each, with a «باشه» that puts it away for good. Tapping the card itself goes
+     * wherever the notice points — the online exam, the worksheets — so «آزمون پنج‌شنبه است» is
+     * one tap from being acted on rather than a sentence to go and find.
+     */
+    private void renderNotices(View view) {
+        LinearLayout holder = view.findViewById(R.id.map_notices);
+        if (holder == null) return;
+        holder.removeAllViews();
+        List<Notices.Notice> notices = Notices.unseen(requireContext());
+        holder.setVisibility(notices.isEmpty() ? View.GONE : View.VISIBLE);
+
+        for (Notices.Notice notice : notices) {
+            LinearLayout card = UiKit.column(requireContext());
+            int pad = UiKit.dp(requireContext(), 14);
+            card.setPadding(pad, pad, pad, pad);
+            UiKit.applyCardBg(card, requireContext(), R.color.bg_card, R.color.orange_border);
+            card.setLayoutParams(UiKit.marginParams(requireContext(), 0, 8));
+
+            card.addView(UiKit.text(requireContext(), "📣 " + notice.title, 14f,
+                R.color.orange_text, true));
+            if (!notice.body.isEmpty()) {
+                TextView body = UiKit.text(requireContext(), notice.body, 12.5f,
+                    R.color.text_primary, false);
+                body.setLineSpacing(UiKit.dp(requireContext(), 4), 1f);
+                card.addView(body, UiKit.marginParams(requireContext(), 5, 0));
+            }
+
+            TextView ok = UiKit.text(requireContext(), "باشه", 12.5f, R.color.teal_dark, true);
+            ok.setGravity(Gravity.CENTER);
+            int vp = UiKit.dp(requireContext(), 9);
+            ok.setPadding(0, vp, 0, vp);
+            UiKit.applyCardBg(ok, requireContext(), R.color.bg_card, R.color.teal_border);
+            ok.setOnClickListener(v -> {
+                Notices.markSeen(requireContext(), notice.id);
+                renderNotices(view);
+            });
+            UiKit.tapSound(ok);
+            card.addView(ok, UiKit.marginParams(requireContext(), 10, 0));
+
+            if (!notice.screen.isEmpty()) {
+                card.setOnClickListener(v -> {
+                    try {
+                        Screen target = Screen.valueOf(notice.screen);
+                        Notices.markSeen(requireContext(), notice.id);
+                        nav().go(target);
+                    } catch (IllegalArgumentException unknown) {
+                        // news written for a newer version of the app; the card still reads fine
+                    }
+                });
+                UiKit.tapSound(card);
+            }
+            holder.addView(card);
+        }
     }
 
     /** Draws the whole screen for one chapter. Tapping another chapter chip calls it again. */

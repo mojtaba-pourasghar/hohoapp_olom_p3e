@@ -16,6 +16,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 240      # recording four thousand narration lines takes a while
 
     steps:
       - uses: actions/checkout@v4
@@ -52,25 +53,105 @@ jobs:
           set -o pipefail
           python3 -m pip install --quiet edge-tts
           sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
-          python3 tools/make_voice.py "--rate=-8%" 2>&1 | tail -n 40 | tee voice-run.log
+          python3 tools/make_voice.py "--rate=-8%" 2>&1 | tail -n 60 | tee voice-run.log
+          echo "کلیپ‌های ضبط‌شده: $(ls app/src/main/res/raw/*.ogg 2>/dev/null | wc -l)"
+          du -sh app/src/main/res/raw/
 
-      # the compiler's own words go into the log the failure issue quotes, since Actions logs
-      # cannot be read from the dev environment
-      - name: Build debug APK
+      # The signing key, out of a secret and onto the runner's disk for the length of the build.
+      #
+      # Without a fixed key every run signs with a fresh throwaway debug certificate, and then
+      # Android will not install the new APK over the old one — the app looks broken when only
+      # its signature changed. The key is never in the repo; it is base64 in HOOHOO_KEYSTORE_B64.
+      - name: Unpack the signing key
+        id: signing
+        env:
+          KEYSTORE_B64: ${{ secrets.HOOHOO_KEYSTORE_B64 }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ]; then
+            echo "ready=no" >> "$GITHUB_OUTPUT"
+            echo "::warning title=کلیدِ امضا نیست::این APK با کلیدِ موقت امضا می‌شود و روی گوشی‌ای که نسخه‌ی قبلی را دارد نصب نمی‌شود. رازِ HOOHOO_KEYSTORE_B64 را اضافه کن."
+            exit 0
+          fi
+          mkdir -p "$RUNNER_TEMP/signing"
+          printf '%s' "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/signing/hoohoo.p12"
+          echo "ready=yes" >> "$GITHUB_OUTPUT"
+          echo "کلیدِ امضا آماده شد ($(stat -c%s "$RUNNER_TEMP/signing/hoohoo.p12") بایت)"
+
+      # Release, not debug — and that is not a detail.
+      #
+      # The lock on the paid chapters is a buildConfigField: off in debug so a chapter can be
+      # worked on without buying it, on in release. Build the debug variant here and the APK
+      # that reaches کافه‌بازار would hand the whole book out for nothing.
+      - name: Build release APK
+        id: build
+        env:
+          HOOHOO_KEYSTORE: ${{ steps.signing.outputs.ready == 'yes' && format('{0}/signing/hoohoo.p12', runner.temp) || '' }}
+          HOOHOO_KEYSTORE_PASSWORD: ${{ secrets.HOOHOO_KEYSTORE_PASSWORD }}
+          HOOHOO_KEY_ALIAS: ${{ secrets.HOOHOO_KEY_ALIAS }}
+          HOOHOO_KEY_PASSWORD: ${{ secrets.HOOHOO_KEY_PASSWORD }}
         run: |
           set -o pipefail
-          ./gradlew assembleDebug --no-daemon 2>&1 | tee /tmp/build.log
-          status=${PIPESTATUS[0]}
-          if [ "$status" != "0" ]; then grep -E "error:|e: |FAILED|What went wrong" -A3 /tmp/build.log | head -c 3500 > /tmp/release.log; fi
-          exit $status
+          ./gradlew assembleRelease --stacktrace --no-daemon 2>&1 | tee /tmp/build.log
+
+      # Why the build failed, somewhere it can actually be read.
+      #
+      # The runner's log lives on blob storage, which the development environment cannot reach,
+      # so a failed compile used to be a wall: «failure» and nothing else. Annotations come back
+      # from api.github.com, so the compiler's own lines are turned into annotations — and into
+      # the run summary, for whoever is looking at the web page instead.
+      - name: Say why the build failed
+        if: failure() && steps.build.outcome == 'failure'
+        run: |
+          echo "### بیلد شکست" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          tail -c 8000 /tmp/build.log >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+          # javac and AGP both print «…/File.java:12: error: …»; those lines are the whole story
+          grep -E "error:|^e: |FAILURE:|Execution failed|Caused by:" /tmp/build.log \
+            | head -n 25 > /tmp/build-errors.log || true
+          if [ ! -s /tmp/build-errors.log ]; then
+            tail -n 25 /tmp/build.log > /tmp/build-errors.log || true
+          fi
+          while IFS= read -r line; do
+            printf '::error title=بیلد::%s\n' "$(printf '%s' "$line" | tr -d '\r' | cut -c1-400)"
+          done < /tmp/build-errors.log
+
+      # Which certificate signed it — the one number that says whether this APK installs over
+      # the last one. It goes in the log and in the build summary, so a key that silently
+      # changed can never again be found out from a phone.
+      - name: Say who signed it
+        run: |
+          APK=app/build/outputs/apk/release/app-release.apk
+          FINGERPRINT=$(python3 tools/apk_signer.py "$APK")
+          echo "$FINGERPRINT"
+          {
+            echo "### امضای این APK"
+            echo ""
+            echo '```'
+            echo "$FINGERPRINT"
+            echo '```'
+            if [ "${{ steps.signing.outputs.ready }}" != "yes" ]; then
+              echo ""
+              echo "⚠ کلیدِ ثابت داده نشده بود؛ این نسخه روی نصبِ قبلی به‌روزرسانی نمی‌شود."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
 
       # Two names on purpose: a versioned one for the permanent release, and a fixed
       # "hoohoo-olom.apk" so the download link on the latest release never changes.
       - name: Collect the APK
+        id: collect
         run: |
           mkdir -p dist
-          cp app/build/outputs/apk/debug/app-debug.apk "dist/${{ steps.version.outputs.apk }}"
-          cp app/build/outputs/apk/debug/app-debug.apk dist/hoohoo-olom.apk
+          APK=app/build/outputs/apk/release/app-release.apk
+          if [ ! -f "$APK" ]; then
+            # an unsigned release would be app-release-unsigned.apk, and installs nowhere
+            echo "::error title=APK نیست::$APK ساخته نشد. فایل‌های موجود:"
+            ls -l app/build/outputs/apk/release/ || true
+            exit 1
+          fi
+          cp "$APK" "dist/${{ steps.version.outputs.apk }}"
+          cp "$APK" dist/hoohoo-olom.apk
           ls -lh dist/
 
       - name: Upload as workflow artifact
@@ -80,19 +161,21 @@ jobs:
           path: dist/*.apk
           retention-days: 30
 
-      # The built APK is committed to the repo (dist/) so it can be grabbed straight
-      # from the file tree, and tagged as a release so every version stays downloadable.
-      - name: Commit the APK into the repo
+      # Only the narration goes back into the repo. The APK does not: with four thousand
+      # clips inside it, it is over GitHub's hard 100 MB limit for a file in a repository,
+      # and the push is rejected — which used to take the release down with it. The release
+      # is where the APK belongs anyway, and a release asset may be up to 2 GB.
+      - name: Commit the narration into the repo
         if: github.ref == 'refs/heads/master'
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f dist/hoohoo-olom.apk app/src/main/res/raw/
+          git add -f app/src/main/res/raw/
           if git diff --cached --quiet; then
             echo "Nothing changed."
           else
             voices=$(git diff --cached --name-only | grep -c 'res/raw/.*\.ogg' || true)
-            git commit -m "APK نسخه‌ی ${{ steps.version.outputs.version }}${voices:+ (+$voices فایل گفتار)}"
+            git commit -m "گفتارِ نسخه‌ی ${{ steps.version.outputs.version }} (+$voices فایل صوتی)"
             git pull --rebase --autostash origin master || true
             git push
           fi
@@ -101,7 +184,7 @@ jobs:
       # deleting the tag and immediately creating it again raced with GitHub and failed the
       # publish (the APK itself had already built and been committed).
       - name: Tag and publish the release
-        if: github.ref == 'refs/heads/master'
+        if: ${{ !cancelled() && steps.collect.outcome == 'success' && github.ref == 'refs/heads/master' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -151,7 +234,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAIL=$(tail -c 4000 /tmp/release.log 2>/dev/null || echo "بدون لاگ")
+          TAIL=$(tail -c 4000 /tmp/release.log 2>/dev/null \
+                 || tail -c 4000 /tmp/build.log 2>/dev/null \
+                 || echo "بدون لاگ")
           gh issue create \
             --title "انتشار نسخه‌ی ${{ steps.version.outputs.version }} ناموفق بود" \
             --body "$(printf 'ران: %s\n\n```\n%s\n```\n' "$GITHUB_RUN_ID" "$TAIL")" || true

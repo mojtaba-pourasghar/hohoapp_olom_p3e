@@ -22,6 +22,7 @@ import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 
 import com.hoohooolom.app.R;
+import com.hoohooolom.app.data.Access;
 import com.hoohooolom.app.data.AppState;
 import com.hoohooolom.app.data.Book;
 import com.hoohooolom.app.data.SheetStore;
@@ -97,25 +98,33 @@ public class WorksheetDownloadFragment extends BaseFragment {
 
     private void render(View view) {
         AppState s = state();
-        Book.Chapter ch = Book.chapter(currentChapter);
+        boolean loose = currentChapter < 0;        // the «متفرقه» tab
 
         FrameLayout chipContainer = view.findViewById(R.id.chip_container);
         chipContainer.removeAllViews();
         chipContainer.addView(ScreenHelpers.buildChapterChipRow(requireContext(), s, currentChapter, i -> {
             currentChapter = i;
             render(view);
-        }));
+        }, "متفرقه"));
 
-        ((TextView) view.findViewById(R.id.chapter_title)).setText("درس " + ch.numberFa + ": " + ch.title);
-        ((TextView) view.findViewById(R.id.chapter_subtitle))
-            .setText("کاربرگ‌های چاپی برای نوشتن روی کاغذ. اینجا جدا از کاربرگ‌های داخلِ اپ است.");
+        if (loose) {
+            ((TextView) view.findViewById(R.id.chapter_title)).setText("متفرقه");
+            ((TextView) view.findViewById(R.id.chapter_subtitle))
+                .setText("کاربرگ‌هایی که به یک درسِ خاص مربوط نیستند — مرورِ چند درس با هم، "
+                    + "آزمونِ کلی و هر چیزی که چند درس را با هم می‌آورد.");
+        } else {
+            Book.Chapter ch = Book.chapter(currentChapter);
+            ((TextView) view.findViewById(R.id.chapter_title)).setText("درس " + ch.numberFa + ": " + ch.title);
+            ((TextView) view.findViewById(R.id.chapter_subtitle))
+                .setText("کاربرگ‌های چاپی برای نوشتن روی کاغذ. اینجا جدا از کاربرگ‌های داخلِ اپ است.");
+        }
 
         LinearLayout list = view.findViewById(R.id.list_container);
         list.removeAllViews();
 
         List<WorksheetDownload> sheets = WorksheetDownload.forChapter(requireContext(), currentChapter);
         if (sheets.isEmpty()) {
-            list.addView(emptyCard());
+            list.addView(emptyCard(loose));
         } else {
             for (WorksheetDownload sheet : sheets) list.addView(sheetCard(sheet));
         }
@@ -124,18 +133,24 @@ public class WorksheetDownloadFragment extends BaseFragment {
     }
 
     /** Honest empty state: nothing is published yet, and it says why. */
-    private View emptyCard() {
+    private View emptyCard(boolean loose) {
         LinearLayout card = UiKit.column(requireContext());
         int pad = UiKit.dp(requireContext(), 18);
         card.setPadding(pad, pad, pad, pad);
         UiKit.applyCardBg(card, requireContext(), R.color.orange_bg, R.color.orange_border);
         card.setLayoutParams(UiKit.marginParams(requireContext(), 0, 10));
 
-        card.addView(UiKit.text(requireContext(), "هنوز کاربرگ چاپی گذاشته نشده", 15f, R.color.orange_text, true));
+        card.addView(UiKit.text(requireContext(),
+            loose ? "کاربرگِ متفرقه‌ای نیست" : "هنوز کاربرگ چاپی گذاشته نشده",
+            15f, R.color.orange_text, true));
         TextView body = UiKit.text(requireContext(),
-            "این بخش آماده است و به محض اینکه فایل‌های کاربرگ جایی گذاشته شوند، فهرستشان همین‌جا "
-                + "می‌آید و با یک ضربه دانلود می‌شوند.\n\n"
-                + "تا آن وقت، کاربرگ‌های داخلِ اپ کار می‌کنند: سی سؤال در هر کاربرگ، همین‌جا جواب می‌دهی.",
+            loose
+                ? "هر کاربرگی که به یک فصلِ خاص مربوط نباشد، همین‌جا می‌آید. فصل‌های دیگر را از "
+                    + "چیپ‌های بالا ببین.\n\n"
+                    + "کاربرگ‌های داخلِ اپ هم جای خودشان هستند: سی سؤال در هر کاربرگ."
+                : "این بخش آماده است و به محض اینکه فایل‌های کاربرگ جایی گذاشته شوند، فهرستشان همین‌جا "
+                    + "می‌آید و با یک ضربه دانلود می‌شوند.\n\n"
+                    + "تا آن وقت، کاربرگ‌های داخلِ اپ کار می‌کنند: سی سؤال در هر کاربرگ، همین‌جا جواب می‌دهی.",
             13f, R.color.text_primary, false);
         body.setLineSpacing(UiKit.dp(requireContext(), 5), 1f);
         card.addView(body, UiKit.marginParams(requireContext(), 8, 0));
@@ -159,9 +174,21 @@ public class WorksheetDownloadFragment extends BaseFragment {
         area.setLayoutParams(UiKit.marginParams(requireContext(), 12, 0));
         card.addView(area);
 
-        if (SheetStore.has(requireContext(), sheet)) showReady(area, sheet);
+        // two sheets are free, picked in the catalogue; the rest come with the subscription
+        boolean open = paid() || Access.sheet(WorksheetDownload.bundled(requireContext()), sheet);
+        if (!open) showLocked(area, sheet);
+        else if (SheetStore.has(requireContext(), sheet)) showReady(area, sheet);
         else showDownloadButton(area, sheet);
         return card;
+    }
+
+    /** A locked sheet is still listed, with the reason and a way to open it. */
+    private void showLocked(LinearLayout area, WorksheetDownload sheet) {
+        area.removeAllViews();
+        TextView button = UiKit.primaryButton(requireContext(), "🔒 با نسخه‌ی کامل باز می‌شود",
+            color(R.color.orange), R.color.white);
+        button.setOnClickListener(v -> goPaywall("کاربرگِ «" + sheet.title + "»"));
+        area.addView(button);
     }
 
     /** Before the download: one button. */
@@ -320,7 +347,8 @@ public class WorksheetDownloadFragment extends BaseFragment {
         link.setLayoutParams(UiKit.marginParams(requireContext(), 6, 8));
         link.setOnClickListener(v -> {
             Bundle args = new Bundle();
-            args.putInt("chapter", currentChapter);
+            // «متفرقه» is not a chapter, so the in-app worksheets open on the taught one
+            args.putInt("chapter", currentChapter < 0 ? state().taughtChapter : currentChapter);
             nav().go(com.hoohooolom.app.ui.Screen.WORKSHEET_INDEX, args);
         });
         UiKit.tapSound(link);

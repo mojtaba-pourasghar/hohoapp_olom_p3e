@@ -127,6 +127,25 @@ public final class VoiceStore {
     }
 
     /**
+     * The clips of one chapter that are not on the device yet.
+     *
+     * Only ever counts clips the host actually has: a key the catalogue does not know is not
+     * missing, it does not exist, and waiting for it would be waiting for nothing.
+     */
+    public static List<String> missing(Context context, int chapter) {
+        List<String> out = new ArrayList<>();
+        for (String key : VoiceCatalog.keysOfChapter(context, chapter)) {
+            if (!has(context, key)) out.add(key);
+        }
+        return out;
+    }
+
+    /** Whether a chapter is worth stopping the child for. */
+    public static boolean needs(Context context, int chapter) {
+        return !missing(context, chapter).isEmpty();
+    }
+
+    /**
      * Brings down a whole chapter, reporting as it goes. Chapter -1 means the shared clips the
      * quizzes read numbers from.
      */

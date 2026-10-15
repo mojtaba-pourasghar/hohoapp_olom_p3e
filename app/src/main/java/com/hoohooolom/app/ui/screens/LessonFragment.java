@@ -14,6 +14,7 @@ import androidx.core.content.ContextCompat;
 
 import com.hoohooolom.app.R;
 import com.hoohooolom.app.data.AppState;
+import com.hoohooolom.app.data.Access;
 import com.hoohooolom.app.data.Book;
 import com.hoohooolom.app.data.Lessons;
 import com.hoohooolom.app.data.PageLessons;
@@ -26,6 +27,7 @@ import com.hoohooolom.app.tts.LessonAudio;
 import com.hoohooolom.app.tts.VoiceStore;
 import com.hoohooolom.app.tts.SoundManager;
 import com.hoohooolom.app.ui.BaseFragment;
+import com.hoohooolom.app.ui.VoiceGate;
 import com.hoohooolom.app.ui.FeedbackDialog;
 import com.hoohooolom.app.ui.LessonStageView;
 import com.hoohooolom.app.ui.Screen;
@@ -43,6 +45,9 @@ public class LessonFragment extends BaseFragment {
     private int chapter, section;
     /** > 0 when this is a lesson for one page of the printed book. */
     private int page;
+
+    /** The «صدا هنوز نیامده» window, while it is up. */
+    private android.app.Dialog gate;
     private LessonScript script;
     private int stepIndex = 0;
     private final StringBuilder typed = new StringBuilder();
@@ -76,11 +81,22 @@ public class LessonFragment extends BaseFragment {
             if (page > 0) chapter = script.chapter;
         }
 
+
         stage = view.findViewById(R.id.lesson_stage);
         onTap(view, R.id.lesson_back, () -> {
             LessonAudio.stop();
             nav().go(Screen.MAP);
         });
+
+        // The last gate, and the one that matters: «برویم صفحه‌ی بعد کتاب» walks straight from
+        // page to page across the whole book, so the lesson itself has to check — otherwise the
+        // free pages are a door left open onto all hundred and forty-four.
+        if (!paid() && !(page > 0 ? Access.page(page) : Access.section(chapter, section))) {
+            LessonAudio.stop();
+            goPaywall(page > 0 ? "صفحه‌ی " + fa(page) + " کتاب"
+                : "درس " + Book.chapter(chapter).numberFa + "، بخشِ " + fa(section + 1));
+            return;
+        }
 
         if (script == null) {
             ((TextView) view.findViewById(R.id.lesson_caption)).setText("درسِ صوتی این بخش هنوز آماده نیست.");
@@ -99,13 +115,29 @@ public class LessonFragment extends BaseFragment {
         int saved = page > 0 ? state().pageStep(page) : state().lessonStep(chapter, section);
         stepIndex = saved > 0 && saved < script.steps.size() ? saved : 0;
 
-        renderStep();
+        // Nothing starts until this chapter's voice is on the phone. A child cannot tell «the
+        // clips have not arrived» from «هوهو sounds like a robot today», so the window says it
+        // and holds the lesson until it is fixed — or until it is clear there is no connection
+        // to fix it with, and going on with the device's voice is the better of two.
+        gate = VoiceGate.require(this, chapter, this::renderStep);
+    }
+
+    /** Back walks the lesson backwards a step at a time before it leaves the lesson. */
+    @Override
+    public boolean onBackPressed() {
+        if (script == null || stepIndex <= 0) return false;
+        goToStep(stepIndex - 1);
+        return true;
     }
 
     @Override
     public void onDestroyView() {
         LessonAudio.stop();
         if (stage != null) stage.stop();
+        if (gate != null) {
+            gate.dismiss();            // the screen is going; its window must not outlive it
+            gate = null;
+        }
         super.onDestroyView();
     }
 
